@@ -1,0 +1,21 @@
+---
+title: "An Actuary Walks into a War Room: Using a Model from Actuarial Science to Predict War Size"
+author: Miles D. Williams^[Denison University, Granville, OH USA. Contact at mdwilliams@denison.edu.]
+date: "`r Sys.Date()`"
+abstract: "**Abstract**: This document was produced using a Quarto (.qmd) template. It's goal is to provide a better looking and functioning Word template for researchers to use when weaving together reports with their text and embedded code in Quarto."
+format: 
+  docx:
+    reference-doc: word_docx_new_template.docx
+    number-sections: true
+    number-depth: 3
+    fig-dpi: 500
+    fig-align: center
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+
+***Keywords***: Conflict, Battle Deaths, Inverse Burr
+
+

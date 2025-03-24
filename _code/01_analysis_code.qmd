@@ -1,0 +1,141 @@
+---
+title: "Analysis Code"
+format: html
+---
+
+## Setup
+
+```{r}
+## open packages:
+library(tidyverse)
+library(invburreg)
+library(coolorrr)
+library(poweRlaw)
+library(geomtextpath)
+
+## session options:
+data("wars")
+set_palette()
+theme_set(ggthemes::theme_fivethirtyeight())
+theme_update(
+  panel.background = element_rect(fill = "white"),
+  plot.background = element_rect(fill = "white"), 
+  legend.key = element_rect(fill = "white"),
+  plot.caption = element_text(
+    hjust = 0,
+    size = 12
+  ),
+  plot.subtitle = element_text(
+    hjust = .5,
+    size = 12
+  ),
+  plot.caption.position = "plot",
+  axis.title = element_text(
+    size = 12,
+    hjust = .5
+  )
+)
+saveit <- function(num = 1, ht = 4, wd = 6) {
+  ggsave(
+    filename = here::here(
+      "_figs",
+      paste0("fig", num, ".png")
+    ),
+    dpi = 500,
+    height = ht,
+    width = wd
+  )
+}
+```
+
+## Figure 1
+
+Figure 1 shows variation in war sizes over time.
+
+```{r}
+#| fig-height: 4
+#| fig-width: 6
+ggplot(wars) +
+  aes(x = year, y = fat) +
+  geom_point() +
+  labs(
+    x = "Start Year",
+    y = "Total Battle Deaths",
+    caption = str_wrap(
+      "Figure 1: The total number of battle deaths by war in the Correlates of War conflict series. Values shown by war start year.",
+      width = 75
+    )
+  ) +
+  scale_x_continuous(
+    breaks = seq(1820, 2010, by = 20)
+  ) +
+  scale_y_continuous(
+    labels = ~ paste0(.x / 1e06, " mil")
+  )
+saveit(1)
+```
+
+## Figure 2
+
+To fit the power-law to data I'm using the `{poweRlaw}` R package.
+
+```{r}
+## fit the power-law to conflict deaths
+pl <- conpl$new(wars$fat)
+pl$setXmin(
+  estimate_xmin(
+    pl, 
+    xmax = max(wars$fat)
+  )
+)
+```
+
+Visualize the model:
+
+```{r}
+#| fig-height: 4
+#| fig-width: 6
+p <- function(x) {
+  rank(-x) / max(rank(-x))
+}
+wars |> 
+  mutate(
+    pfat = p(fat)
+  ) |>
+  ggplot() +
+  aes(fat, pfat) +
+  geom_point(
+    color = "gray"
+  ) +
+  geom_smooth(
+    data = . %>% 
+      filter(fat >= pl$xmin),
+    method = "lm",
+    se = F
+  ) +
+  geom_textvline(
+    xintercept = pl$xmin,
+    label = "Optimal data\nthreshold"
+  ) +
+  scale_x_log10(
+    labels = ~ paste0(
+      .x / 1e06, " mil"
+    )
+  ) +
+  scale_y_log10(
+    labels = scales::percent
+  ) +
+  labs(
+    subtitle = expression(
+      alpha*" = "*1.525*"; x-min = 7,061; data loss = 46.3%"
+    ),
+    x = "Battle Deaths (in millions)",
+    y = "Pr(X > x)",
+    caption = str_wrap(
+      "Figure 2: The optimal power-law fit for the battle death series. Values are shown on the log-scale.",
+      width = 75
+    )
+  ) 
+saveit(2)
+```
+
