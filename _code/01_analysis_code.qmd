@@ -15,7 +15,9 @@ library(geomtextpath)
 
 ## session options:
 data("wars")
-set_palette()
+set_palette(
+  qualitative = c("steelblue", "gray", "red3", "navy", "orange3")
+)
 theme_set(ggthemes::theme_fivethirtyeight())
 theme_update(
   panel.background = element_rect(fill = "white"),
@@ -137,5 +139,306 @@ wars |>
     )
   ) 
 saveit(2)
+```
+
+
+## Figure 3
+
+The inverse burr fit for the data.
+
+```{r}
+base_fit <- ibm(
+  outcome = fat,
+  data = wars,
+  its = 2
+)
+base_fit$out |>
+  transmute(param, estimate = exp(estimate))
+```
+
+Visualize its fit for the data.
+
+```{r}
+#| fig-height: 4 
+#| fig-width: 6
+
+wars |> 
+  mutate(
+    pfat = p(fat)
+  ) |>
+  ggplot() +
+  aes(fat, pfat) +
+  geom_point(
+    color = "gray"
+  ) +
+  geom_line(
+    aes(
+      y = actuar::pinvburr(
+        q = fat,
+        scale = exp(base_fit$out$estimate[1]),
+        shape1 = exp(base_fit$out$estimate[2]),
+        shape2 = exp(base_fit$out$estimate[3]),
+        lower.tail = F
+      )
+    ),
+    color = "blue",
+    linewidth = 1
+  ) +
+  scale_x_log10(
+    labels = ~ paste0(
+      .x / 1e06, " mil"
+    )
+  ) +
+  scale_y_log10(
+    labels = scales::percent
+  ) +
+  labs(
+    subtitle = expression(
+      mu*" = 0.49; "*alpha*" = 438.29; "*theta*" = 0.67"
+    ),
+    x = "Battle Deaths (in millions)",
+    y = "Pr(X > x)",
+    caption = str_wrap(
+      "Figure 3: The optimal inberse Burr fit for the battle death series. Values are shown on the log-scale.",
+      width = 75
+    )
+  ) 
+saveit(3)
+```
+
+## Figure 4
+
+With covariates.
+
+```{r}
+preds <- ~ post1950 + dem + pop
+cov_fit <- ibm(
+  fat,
+  mu = preds,
+  alpha = preds,
+  theta = preds,
+  data = wars,
+  its = 10
+)
+cov_fit$out |>
+  select(param, term, estimate, statistic)
+```
+
+A function to take the output from an inverse burr model and simulate random draws from the distribution.
+
+```{r}
+ibm_sim <- function(model, its = 1000, newdata = NULL) {
+  if(is.null(newdata)) {
+    pdata <- model$model_data
+  } else {
+    newdata <- as.data.frame(newdata)
+    dnames <- colnames(model$model_data)
+    ndata <- matrix(1, nrow(newdata), length(dnames))
+    colnames(ndata) <- dnames
+    for(i in 1:length(dnames)) {
+      if(dnames[i] %in% colnames(newdata)) {
+        ndata[, i] <- 
+          newdata[, colnames(newdata) == dnames[i]]
+      }
+    }
+    pdata <- ndata
+  }
+  param_fit <- function(model, data = pdata, par = "mu") {
+    npars <- 1:nrow(model$out)
+    names(npars) <- model$out$param
+    exp(data[
+      , npars[names(npars) == par]
+    ] %*% (model$out |>
+      filter(param == par) |>
+      pull(estimate)))
+  }
+  map_dfr(
+    .x = 1:(its * nrow(pdata)),
+    .f = ~ newdata |>
+      mutate(
+        sim = .x,
+        pred = actuar::rinvburr(
+          n = nrow(pdata),
+          scale = param_fit(model, par = "mu"),
+          shape1 = param_fit(model, par = "alpha"),
+          shape2 = param_fit(model, par = "theta")
+        )
+      )
+  )
+}
+```
+
+
+A function to get the cdf of an inverse burr model given fitted model parameters.
+
+```{r}
+ibm_d <- function(model, range = c(0, 1000), newdata = NULL) {
+  if(is.null(newdata)) {
+    pdata <- model$model_data
+  } else {
+    newdata <- as.data.frame(newdata)
+    dnames <- colnames(model$model_data)
+    ndata <- matrix(1, nrow(newdata), length(dnames))
+    colnames(ndata) <- dnames
+    for(i in 1:length(dnames)) {
+      if(dnames[i] %in% colnames(newdata)) {
+        ndata[, i] <- 
+          newdata[, colnames(newdata) == dnames[i]]
+      }
+    }
+    pdata <- ndata
+  }
+  param_fit <- function(model, data = pdata, par = "mu") {
+    npars <- 1:nrow(model$out)
+    names(npars) <- model$out$param
+    exp(data[
+      , npars[names(npars) == par]
+    ] %*% (model$out |>
+      filter(param == par) |>
+      pull(estimate)))
+  }
+  x <- seq(range[1], range[2], len = 10000)
+  p <- actuar::pinvburr(
+          q = x,
+          scale = param_fit(model, par = "mu"),
+          shape1 = param_fit(model, par = "alpha"),
+          shape2 = param_fit(model, par = "theta"),
+          lower.tail = F
+        )
+  tibble(x, p)
+}
+```
+
+
+```{r}
+set.seed(111)
+ibm_sim(
+  base_fit,
+  newdata = tibble(cont = 1),
+) -> base_sim
+ibm_sim(
+  cov_fit,
+  newdata = wars |> filter(warnum == 139) |>
+    select(pop, dem, post1950)
+) -> cov_sim
+
+
+bind_rows(
+  base_sim |>
+    mutate(model = "Baseline"),
+  cov_sim |>
+    mutate(model = "World War II")
+) |>
+  group_by(model) |>
+  mutate(
+    ppred = p(pred)
+  ) |>
+  ggplot() +
+  aes(pred, ppred, color = model) +
+  geom_point() +
+  geom_point(
+    data = wars |> 
+      mutate(pfat = p(fat)) |>
+      filter(fat == max(fat)),
+    aes(
+      x = fat,
+      y = pfat,
+      color = "World War II (Actual)"
+    ),
+    size = 3
+  ) +
+  scale_x_log10(
+    labels = ~ paste0(
+      .x / 1e06, " mil"
+    )
+  ) +
+  scale_y_log10(
+    labels = scales::percent
+  ) +
+  labs(
+    x = "Battle Deaths (in millions)",
+    y = "Pr(X > x)",
+    caption = str_wrap(
+      "Figure 4: Simulated inverse Burr distributions based on the basline model and the model fit with covariates. In the covariate model, variables are set to World War II values. The actual Pr(X > x) for World War II is highlighted with a red point. Values are on the log-log scale",
+      width = 75
+    ),
+    color = NULL
+  ) +
+  ggpal()
+saveit(4)
+```
+
+
+```{r}
+set.seed(111)
+ibm_sim(
+  base_fit,
+  newdata = tibble(cont = 1),
+) -> base_sim
+ibm_sim(
+  cov_fit,
+  newdata = wars |> filter(warnum == 139) |>
+    select(pop, dem, post1950)
+) -> cov_sim
+
+
+bind_rows(
+  base_sim |>
+    mutate(model = "Baseline"),
+  cov_sim |>
+    mutate(model = "World War II")
+) |>
+  group_by(model) |>
+  mutate(
+    ppred = p(pred)
+  ) |>
+  ggplot() +
+  aes(pred, ppred, color = model) +
+  geom_point() +
+  geom_point(
+    data = wars |> 
+      mutate(pfat = p(fat)) |>
+      filter(fat == max(fat)),
+    aes(
+      x = fat,
+      y = pfat,
+      color = "World War II (Actual)"
+    ),
+    size = 3
+  ) +
+  scale_x_log10(
+    labels = ~ paste0(
+      .x / 1e06, " mil"
+    )
+  ) +
+  scale_y_log10(
+    labels = scales::percent
+  ) +
+  labs(
+    x = "Battle Deaths (in millions)",
+    y = "Pr(X > x)",
+    caption = str_wrap(
+      "Figure 4: Simulated inverse Burr distributions based on the basline model and the model fit with covariates. In the covariate model, variables are set to World War II values. The actual Pr(X > x) for World War II is highlighted with a red point. Values are on the log-log scale",
+      width = 75
+    ),
+    color = NULL
+  ) +
+  ggpal()
+```
+
+
+## Tabulations reported in-text
+
+The share of all war deaths the top wars are responsible for.
+
+```{r}
+wars |>
+  mutate(
+    pct = fat / sum(fat)
+  ) |>
+  arrange(-pct) |>
+  mutate(
+    cumpct = cumsum(pct)
+  )
 ```
 

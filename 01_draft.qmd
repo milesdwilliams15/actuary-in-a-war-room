@@ -1,12 +1,13 @@
 ---
 title: "An Actuary Walks into a War Room: Using a Model from Actuarial Science to Predict War Size"
+bibliography: "ref.bib"
 author: Miles D. Williams^[Denison University, Granville, OH USA. Contact at mdwilliams@denison.edu.]
 date: "`r Sys.Date()`"
 abstract: "**Abstract**: This document was produced using a Quarto (.qmd) template. It's goal is to provide a better looking and functioning Word template for researchers to use when weaving together reports with their text and embedded code in Quarto."
 format: 
   docx:
     reference-doc: word_docx_new_template.docx
-    number-sections: true
+    number-sections: false
     number-depth: 3
     fig-dpi: 500
     fig-align: center
@@ -18,4 +19,59 @@ execute:
 
 ***Keywords***: Conflict, Battle Deaths, Inverse Burr
 
+# Introduction
 
+Risk is the business of actuaries, and when it comes to war business is good. Actuaries typically work for insurance companies or firms, and their job is to model financial risk and ruin. That means they care about more than a single point estimate of the expected value of, say, an insurance claim. They care about the probability distribution over the possible claims the insured might make. Often, these claims follow a thick tailed distribution where the likelihood of extreme values is higher than you would see with more conventional probability density functions. Because insurance companies and firms want to avoid financial ruin, they take the odds of extreme events seriously and want their actuaries to use the most rigorous methods possible for modeling this risk.
+
+When @cunen2020 recently used the inverse Burr distribution to model the sizes of international wars, they drew from the deep well of actuarial science. They even used a statistical package created specifically for the purpose of doing actuarial science – an R package called `{actuar}` – to apply the inverse Burr to war fatality data. What does it mean to approach the study of war through the lens of an actuary? What theoretical framework and assumptions are implied? @cunen2020 say very little about the actuarial roots of their methodology. This is a missed opportunity to showcase the potential on offer with Cunen et al.'s approach – as well as the pitfalls.
+
+This study is motivated by the goal of better contextualizing the use of the inverse Burr for studying the risk of deadly wars and providing guidance and resources for researchers interested in implementing this method. The study proceeds in three parts.
+
+First, the problem @cunen2020 turned to actuarial science to solve – the heavy-tailed distribution of war fatalities – is discussed. This problem has posed a technical challenge and, thus, been a source of contention among scholars interested in testing macro trends in war's deadliness. Cunen et al.'s work is a recent contribution to a small but growing literature centered on the decline of war theory. Much of this literature has, in part, developed in response to the best-selling book, *The Better Angels of Our Nautre,* by Steven @pinker2011. The merits of assessing the risk of deadly wars are self-evident, and by extension, so are the merits of micro-founding and explaining methods used to make this assessment.
+
+Second, readers are introduced to the inverse Burr model and how it can be used in conflict research. When @cunen2020 applied the model to the problem of modeling war size, they did not just borrow it from actuarial science, they also innovated by showing that the model could be parameterized with covariates. However, their novel approach lacks a consistent and easily accessible user interface for researchers, or a full explanation of what this actuarial tool implies for this methods appropriate use and evaluation. To facilitate better accessibility, a new statistical package developed in the R programming language is introduced that allows users to execute an inverse Burr regression model and summarize the results in ways consistent with standard modeling functions in the R language. However, because of the unique purpose for which the inverse Burr was intended, assessing its output requires a different approach than most political scientists are accustomed to. The model is ideal, not for generating a unique prediction for war size, but a conditional distribution of possible war sizes.
+
+As the world is witnessing an upsurge in conflicts, the need for appropriate analytical tools and the right intuitions for how to use them is timely and necessary. Quantifying the risk of conflict escalation is important not just to academics, but to policy-makers as well. @cunen2020 introduced a helpful tool to conflict research for achieving this goal, but for it to be of greatest utility to the field, it is essential that researchers have guidance on how to use it and convenient tools for doing so.
+
+# The Data and the Problem
+
+One of the foundational questions in the quantitative study of war centers on variation in war deaths. Why are some wars short-lived and result in only a few thousand fatalities, while a others last years (even decades) and kill millions? @richardson1948 [-@richardson1960] was among the first to approach this question using data. He was preceded in this effort by data collection done by @wright1942study, but Richardson was the first to bring "real statistical acumen," as Braumoeller [-@braumoeller2021trends, 274] put it, to the data Wright produced. One of the key observations Richardson made was the fact that many wars are quite small while only a few become especially deadly. In his 1948 work, Richardson noted that the spread of war deaths displays power-law like behavior, meaning that the wars that are the most deadly are exceptionally huge.
+
+This observation is preserved in more recent and higher quality datasets such as the war series produced by the Correlates of War (CoW) project [@sarkeeswayman2010rw]. Figure 1 shows the variation in total battle deaths recorded per war in the CoW data by the first year the war started. The data documents 95 international wars from 1816 to 2007, and, just like Richardson observed decades ago, this more recent dataset shows that most of the wars fought during the past two centuries were generally small. But a few are enormous. World War II, the deadliest war in the CoW dataset, has over 16 million recorded battle deaths. This makes up about 51.8% of all battle deaths in the data. World War I and World War II combined make up 78.6% of all battle deaths, and the top 10 deadliest wars account for nearly 95% of all battle deaths. This kind of distribution is far more extreme than a typical Pareto distribution where 20% of observations are responsible for 80% of outcomes.
+
+```{r}
+fig <- function(name) {
+  knitr::include_graphics(
+    here::here("_figs", name)
+  )
+}
+fig("fig1.png")
+```
+
+Data that is prone to the kind of massive up-swings in magnitude seen in war require specialized statistical tools to analyze. While methods differ a bit, most recent studies use the explicit power-law model to study variation in war size [@braumoeller2019; @cederman2003; @cedermanEtAl2011; @cirillo2016statistical; @clauset2017enduring; @clauset2018trends; @spagat2020decline; @spagat2018fundamental]. The model's name takes inspiration from its functional form, which specifies that the likelihood of seeing an event greater than size $x > 0$ is inversely proportional to the size of the event raised to the power $\alpha > 0$:
+
+$$
+\Pr(X > x) \propto 1 / x^\alpha
+$$ {#eq-powerlaw}
+
+The parameter $\alpha$, what can also be called the power-law slope, determines the likelihood of extreme events. Bigger values mean the likelihood of extreme events is lower, while smaller values mean the likelihood of extreme events is higher.
+
+In practice, the power-law form has some unique behaviors and poses some challenges for fitting it to real world data. First, in terms of unique behaviors, one of the most consequential is that if the $\alpha$ parameter is less than or equal to 3, finite variance for the variable $x$ cannot be guaranteed, and if $\alpha$ is less than or equal 2, a finite mean cannot be identified. In short, depending on how extreme the distribution of the variable $x$ is, a power-law fit for the data may yield a result that says the expected magnitude of the variable is statistically indistinguishable from infinity. This issue is relevant for war. Many recent studies estimate $\alpha$s with values less than 2, and some scholars, like @braumoeller2019, infer from this that extinction-level wars are not just possible but probable with a higher likelihood than many assume.
+
+Second, in terms of practical challenges, most real-world data are not uniformly explained by the power-law. This fact is noted by @clausetEtAl2009 who recommend identifying a minimum value of $x$ such that the data is power-law distributed for all $x \geq x_\text{min}$. While this seems like a compromise, @clausetEtAl2007 argue that in many studies power-law behavior in the extreme tail of a thick-tailed distribution is often of greatest concern to researchers. Some data truncation is a necessary trade-off for ensuring an accurate fit for the power-law model for the largest events in the data.
+
+This practical concern is also relevant for studying war. Using the CoW dataset used to produce Figure 1, Figure 2 shows the optimal fit for a power-law model to the battle death series. Consistent with best-practice, the appropriateness of the power-law fit for data is shown using a log-log plot where the observed values of battle deaths are shown on the x-axis and the empirical CDF, $\Pr(X > x)$, is shown on the y-axis. Based on the form of the power-law model, in a log-log plot you should see a negative linear correlation between $x$ and $\Pr(X > x)$. Sure enough, this is what we observe in the data. This is with the caveat, however, that we observe power-law behavior for all large $x \geq x_\text{min}$. Specifically, the parameters for the power-law model are $\alpha = 1.525$ and $x_\text{min} = 7,061$. While the power-law slope seems to make for a good linear fit for more extreme wars and the size of the minimum war size where the power-law applies is small, because of the extreme distribution in war deaths nearly a majority of the wars in the data *cannot be explained* by the model (46.3% fall below $x_\text{min} = 7,061$).
+
+```{r}
+fig("fig2.png")
+```
+
+Most scholars who have used the power-law to study variation in the size of war accept the data loss as a reasonable trade-off for the ability to accurately fit the power-law for extreme conflicts. However, more recent work by @cunen2020 raises the concern that the conventional power-law model leaves substantial variation in war unexplained. Further, by removing observations they worry that statistical precision is being lost as well.
+
+```{r}
+fig("fig3.png")
+```
+
+```{r}
+fig("fig4.png")
+```
