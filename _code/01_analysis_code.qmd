@@ -12,6 +12,7 @@ library(invburreg)
 library(coolorrr)
 library(poweRlaw)
 library(geomtextpath)
+library(ggregtab)
 
 ## session options:
 data("wars")
@@ -150,7 +151,7 @@ The inverse burr fit for the data.
 base_fit <- ibm(
   outcome = fat,
   data = wars,
-  its = 2
+  its = 500
 )
 base_fit$out |>
   transmute(param, estimate = exp(estimate))
@@ -206,7 +207,113 @@ wars |>
 saveit(3)
 ```
 
+
+
 ## Figure 4
+
+```{r}
+#| fig-height: 4
+#| fig-width: 6
+
+px <- function(q = c(0, 10), 
+               mu = 2, alpha = 2, theta = 2) {
+  tibble(
+    x = seq(q[1], q[2], len = 100000),
+    y = actuar::dinvburr(
+      x = x,
+      scale = mu,
+      shape1 = alpha,
+      shape2 = theta
+    )
+  )
+}
+
+bind_rows(
+  px(mu = .5) |> mutate(val = "0.5"),
+  px(mu = 1) |> mutate(val = "1"),
+  px(mu = 2) |> mutate(val = "2"),
+  px(mu = 4) |> mutate(val = "4")
+) |>
+  ggplot() +
+  aes(x, y, color = val) +
+  geom_line(linewidth = 1) +
+  labs(
+    subtitle = expression(alpha*" and "*theta*" held constant at 2"),
+    caption = str_wrap(
+      "Figure 4: The influence of a change to the scale parameter on the inverse Burr distribution.",
+      width = 75
+    ),
+    x = "x",
+    y = "Denisity",
+    color = expression(mu*" = ")
+  ) +
+  ggpal("diverging", ordinal = T, levels = 4)
+saveit(4)
+```
+
+## Figure 5
+
+
+```{r}
+#| fig-height: 4
+#| fig-width: 6
+
+bind_rows(
+  px(alpha = .5) |> mutate(val = "0.5"),
+  px(alpha = 1) |> mutate(val = "1"),
+  px(alpha = 2) |> mutate(val = "2"),
+  px(alpha = 4) |> mutate(val = "4")
+) |>
+  ggplot() +
+  aes(x, y, color = val) +
+  geom_line(linewidth = 1) +
+  labs(
+    subtitle = expression(mu*" and "*theta*" held constant at 2"),
+    caption = str_wrap(
+      "Figure 5: The influence of a change to the first shape parameter on the inverse Burr distribution.",
+      width = 75
+    ),
+    x = "x",
+    y = "Denisity",
+    color = expression(alpha*" = ")
+  ) +
+  ggpal("diverging", ordinal = T, levels = 4)
+saveit(5)
+```
+
+
+## Figure 6
+
+```{r}
+#| fig-height: 4
+#| fig-width: 6
+
+bind_rows(
+  px(theta = .5) |> mutate(val = "0.5"),
+  px(theta = 1) |> mutate(val = "1"),
+  px(theta = 2) |> mutate(val = "2"),
+  px(theta = 4) |> mutate(val = "4")
+) |>
+  ggplot() +
+  aes(x, y, color = val) +
+  geom_line(linewidth = 1) +
+  labs(
+    subtitle = expression(alpha*" and "*mu*" held constant at 2"),
+    caption = str_wrap(
+      "Figure 6: The influence of a change to the second shape parameter on the inverse Burr distribution.",
+      width = 75
+    ),
+    x = "x",
+    y = "Denisity",
+    color = expression(theta*" = ")
+  ) +
+  ggpal("diverging", ordinal = T, levels = 4)
+saveit(6)
+```
+
+
+
+## Table 1
 
 With covariates.
 
@@ -218,11 +325,45 @@ cov_fit <- ibm(
   alpha = preds,
   theta = preds,
   data = wars,
-  its = 10
+  its = 500
 )
 cov_fit$out |>
   select(param, term, estimate, statistic)
 ```
+
+
+```{r}
+#| fig-height: 4
+#| fig-width: 6
+bind_rows(
+  base_fit$out |> mutate(model = "Baseline"),
+  cov_fit$out |> mutate(model = "Covariates")
+) |>
+  mutate(
+    conf.low = estimate - 1.96 * std.error,
+    conf.high = estimate + 1.96 * std.error,
+    N = 95
+  ) |>
+  ggregtab(ratio = .75) +
+  facet_wrap(
+    ~ paste0("log(",param,")"),
+    labeller = label_parsed
+  ) +
+  scale_y_discrete(
+    labels = c("Population (log)", "Polity (Avg.)", "Post-1950",
+               "Constant")
+  ) +
+  labs(
+    subtitle = str_wrap(
+      "Table 1: Inverse Burr regression estimates with bootstrapped standard errors.",
+      width = 80
+    )
+  )
+saveit("_regtab")
+```
+
+
+## Figure 7
 
 A function to take the output from an inverse burr model and simulate random draws from the distribution.
 
@@ -359,71 +500,101 @@ bind_rows(
     x = "Battle Deaths (in millions)",
     y = "Pr(X > x)",
     caption = str_wrap(
-      "Figure 4: Simulated inverse Burr distributions based on the basline model and the model fit with covariates. In the covariate model, variables are set to World War II values. The actual Pr(X > x) for World War II is highlighted with a red point. Values are on the log-log scale",
+      "Figure 7: Simulated inverse Burr distributions based on the basline model and the model fit with covariates. In the covariate model, variables are set to World War II values. The actual Pr(X > x) for World War II is highlighted with a red point. Values are on the log-log scale",
       width = 75
     ),
     color = NULL
   ) +
   ggpal()
-saveit(4)
+saveit(7)
 ```
 
 
+## Figure 8
+
+Show the conditional effect of democracy
+
 ```{r}
-set.seed(111)
-ibm_sim(
-  base_fit,
-  newdata = tibble(cont = 1),
-) -> base_sim
+#| fig-height: 4
+#| fig-width: 6
+
 ibm_sim(
   cov_fit,
-  newdata = wars |> filter(warnum == 139) |>
-    select(pop, dem, post1950)
-) -> cov_sim
+  newdata = tibble(
+    post1950 = mean(wars$post1950),
+    dem = c(-10, 0, 10),
+    pop = mean(wars$pop)
+  )
+) -> dem_sim
 
-
-bind_rows(
-  base_sim |>
-    mutate(model = "Baseline"),
-  cov_sim |>
-    mutate(model = "World War II")
-) |>
-  group_by(model) |>
-  mutate(
-    ppred = p(pred)
-  ) |>
+dem_sim |>
+  group_by(dem) |>
+  mutate(ppred = p(pred)) |>
   ggplot() +
-  aes(pred, ppred, color = model) +
-  geom_point() +
-  geom_point(
-    data = wars |> 
-      mutate(pfat = p(fat)) |>
-      filter(fat == max(fat)),
-    aes(
-      x = fat,
-      y = pfat,
-      color = "World War II (Actual)"
-    ),
-    size = 3
-  ) +
+  aes(pred, ppred, color = as.factor(dem)) |>
+  geom_point(alpha = 0.4) +
   scale_x_log10(
-    labels = ~ paste0(
-      .x / 1e06, " mil"
-    )
+    labels = ~ paste0(.x / 1e06, " mil")
   ) +
   scale_y_log10(
     labels = scales::percent
   ) +
+  ggpal() +
   labs(
-    x = "Battle Deaths (in millions)",
-    y = "Pr(X > x)",
     caption = str_wrap(
-      "Figure 4: Simulated inverse Burr distributions based on the basline model and the model fit with covariates. In the covariate model, variables are set to World War II values. The actual Pr(X > x) for World War II is highlighted with a red point. Values are on the log-log scale",
+      "Figure 8: The conditional impact of average polity scores among belligerents on the CDF of war fatalities.",
       width = 75
     ),
-    color = NULL
+    x = "Battle Deaths (in millions)",
+    y = "Pr(X > x)",
+    color = "Mean Polity"
+  )
+saveit(8)
+```
+
+## Table 2
+
+```{r}
+cov_fit0 <- ibm(
+  fat,
+  mu = preds,
+  alpha = preds,
+  theta = preds,
+  data = wars |> mutate(fat = fat - 999) |>
+    mutate(fat = ifelse(fat == 1, 1:sum(fat == 1), fat)),
+  its = 500
+)
+```
+
+
+```{r}
+#| fig-height: 4
+#| fig-width: 6
+bind_rows(
+  cov_fit$out |> mutate(model = "(1)"),
+  cov_fit0$out |> mutate(model = "(2)")
+) |>
+  mutate(
+    conf.low = estimate - 1.96 * std.error,
+    conf.high = estimate + 1.96 * std.error,
+    N = 95
+  ) |>
+  ggregtab(ratio = .75) +
+  facet_wrap(
+    ~ paste0("log(",param,")"),
+    labeller = label_parsed
   ) +
-  ggpal()
+  scale_y_discrete(
+    labels = c("Population (log)", "Polity (Avg.)", "Post-1950",
+               "Constant")
+  ) +
+  labs(
+    subtitle = str_wrap(
+      "Table 2: Inverse Burr regression estimates with bootstrapped standard errors. Unadjusted fatality totals (1) compared with adjusted fatalities (2) as the outcome.",
+      width = 80
+    )
+  )
+saveit("_regtab2")
 ```
 
 
