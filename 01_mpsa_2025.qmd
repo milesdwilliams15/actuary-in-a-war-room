@@ -1,0 +1,200 @@
+---
+title: "An Actuary Walks into a War Room (and other jokes)"
+subtitle: "MPSA, 3-6 April"
+format: beamer
+author: "Miles D. Williams, Denison University (williamsmd@denison.edu)"
+bibliography: "ref.bib"
+---
+
+# The Problem
+
+-   War deaths are an unruly thing to model.
+-   When @cunen2020 turned to an unconventional model called the inverse Burr to study war size, they were drawing from a deep well of actuarial science techniques to solve this problem.
+-   But they say little about what this means, and offer even less practical advice and an easy to use user interface for working with the model.
+
+# My Solution
+
+-   I created an R package (`{invburreg}`) that implements an inverse Burr regression in ways that are consistent with other modeling functions in R.
+-   I offer guidance on how to talk about model specification.
+-   And guidance on summarizing model results.
+
+# Background
+
+-   **What's different about an actuarial approach to modeling war size?**
+-   We political scientists tend to focus on expected outcomes --- e.g., conditional averages.
+-   (From what I can tell) Actuaries take a whole-of-distribution approach to assessing risk.
+-   Actuaries need flexible models that can accommodate potentially unruly data.
+
+# Why does this matter for war?
+
+-   There's arowing literature testing the *decline of war thesis* [@braumoeller2019; @cederman2003; @cedermanEtAl2011; @cirillo2016statistical; @clauset2017enduring; @clauset2018trends; @spagat2020decline; @spagat2018fundamental].
+-   The decline of war debate is concerned with whether wars are becoming less frequent over time and less deadly.
+-   When it comes to testing the second part of this argument, there's a problem.
+-   **Wars are prone to power-law behavior in the extreme tail of the distribution.**
+
+# The typical approach
+
+Most applied research uses the classic power-law model to test whether there has been a change in the expected size of war over time:
+
+$$\text{Pr}(X > x) \propto 1 / x^\alpha \quad : \quad \alpha > 0, \forall \text{ large } x$$
+
+Because of practical limitations, the power-law usually must be fit to outcomes greater than some threshold identified by way of GOF tests.
+
+# The typical approach
+
+![](_figs/fig1.png){width="4in"}
+
+# The typical approach
+
+![](_figs/fig2.png){width="4in"}
+
+# Limitations
+
+-   Data truncation is necessary but comes at a cost to precision.
+-   Up to half of wars in the data remain unexplained.
+-   The classic power-law isn't amenable to covariates in a regression framework.
+
+# The solution
+
+-   @cunen2020 proposed using the inverse Burr as an alternative to the classic power-law for modeling war size.
+-   The inverse Burr is a **three parameter** distribution that can accommodate thick-tailed data while being flexible enough to capture an interior mode (unlike the classic power-law).
+-   It also can be modified to incorporate covariates into its estimation (also unlike the classic power-law).
+
+# The solution
+
+The inverse Burr specifies that the probability of some event bigger than size $x$ is:
+
+$$
+\text{Pr}(X>x) = 1 - \left[\frac{(x/\mu)^\theta}{1 + (x / \mu)^\theta} \right]^\alpha
+$$
+
+$\alpha$ and $\theta$ are shape parameters that primarily (but not exclusively) influence the left and right-hand sides of the distribution, and $\mu$ is a scale parameter that influences the mode.
+
+# The solution
+
+![](_figs/fig3.png){width="4in"}
+
+# The solution
+
+The simple inverse Burr does under-predict the most extreme wars, but @cunen2020 showed how the inverse Burr parameters can be fit using covariates (which also improves the overall fit of the model).
+
+$$
+\mu_{L,i} = \mu_{L,0}\text{exp}(\beta_L w_i) \quad \text{and} \quad \mu_{R,i} = \mu_{R,0}\text{exp}(\beta_Rw_i)
+$$
+
+with constant $\alpha$.
+
+# Making the solution accessible
+
+-   @cunen2020 provide replication materials and a short summary of their approach.
+-   But their goal was not to provide guidance on how to use this kind of model --- it was to test the decline of war thesis.
+-   They offer little general advice about the model and how to specify an inverse Burr regression.
+-   They provide their R code, but it isn't exactly tidy and easy to use.
+-   They don't address appropriate ways to summarize model results.
+
+# Making the solution accessible
+
+1.  Model specification – both formally and using an R package I created called `{invburreg}`.
+2.  Model estimation – by way of maximum likelihood using bootstrapping for inference.
+3.  Model evaluation – simulating outcomes conditional model covariates.
+
+# Model specification
+
+The inverse Burr density function with conditional model parameters:
+
+$$
+\text{Burr}^{-1}(x_i; \mu_i, \alpha_i, \theta_i) = \frac{\alpha_i \theta_i(x_i / \mu_i)^{\alpha_i\theta_i}}{x_i[1 + (x_i / \mu_i)^{\theta_i}]^{\alpha_i + 1}} 
+$$
+
+where we have:
+
+$$
+\begin{aligned}
+\mu_i & = \text{exp}(\mathbf W '\beta) \\
+\alpha_i & = \text{exp}(\mathbf Y ' \delta) \\
+\theta_i & = \text{exp}(\mathbf Z'\gamma)
+\end{aligned}
+$$
+
+# Model specification
+
+Consider an applied example:
+
+$$
+\begin{aligned}
+\mu_i & = \text{exp}[\beta_0 + \beta_1 \text{post}_i + \beta_2 \text{polity}_i + \beta_3 \text{log}(\text{pop}_i)] \\
+\alpha_i & = \text{exp}[\delta_0 + \delta_1 \text{post}_i + \delta_2 \text{polity}_i + \delta_3 \text{log}(\text{pop}_i)] \\
+\theta_i & = \text{exp}[\gamma_0 + \gamma_1 \text{post}_i + \gamma_2 \text{polity}_i + \gamma_3 \text{log}(\text{pop}_i)]
+\end{aligned}
+$$
+
+**The Outcome** is battle-related deaths for 95 wars in the CoW conflict series [@sarkeeswayman2010rw].
+
+**The explanatory factors** are a post-1950 dummy, average belligerent polity [@marshalletal2017p], and the log of pooled belligerent populations [@singeretal1972cdu].
+
+# Model specification
+
+Using the `{invburreg}` package you can specify this model by writing:
+
+```{r}
+#| echo: true
+#| eval: false
+
+## open the package and access the wars example data
+library(invburreg)
+data("wars")
+
+## fit an inverse Burr model to data
+model_fit <- ibm(
+  outcome = fat,
+  mu = ~ post1950 + dem + pop,
+  alpha = ~ post1950 + dem + pop,
+  theta = ~ post1950 + dem + pop,
+  data = wars
+)
+```
+
+# Estimation
+
+The recommended approach to estimating the parameters of the inverse Burr model is MLE [@dey2017dagum]:
+
+$$
+L = \sum_{i = 1}^n \text{log}[\text{Burr}^{-1}(x_i; \hat \mu_i, \hat \alpha_i, \hat \theta_i)]
+$$
+
+@cunen2020 use the Hessian for standard errors, but this doesn't always work in practice. `{invburreg}` relies on bootstrapping instead.
+
+# Evaluating results
+
+-   There are two useful ways to summarize results.
+
+-   The first is by way of a regression table (these are obligatory in all political science studies after all).
+
+-   The second is through simulating outcomes based on conditional inverse Burr parameters.
+
+# Evaluating results
+
+![](_figs/fig_regtab.png){width=4in}
+
+# Evaluating results
+
+![](_figs/fig7.png){width=4in}
+
+# Evaluating results
+
+![](_figs/fig8.png){width=4in}
+
+# Warning!
+
+![](_figs/fig_regtab2.png){width=4in}
+
+# Wrapping up
+
+- The inverse Burr is a flexible tool used by actuaries to model risk in extreme-tailed data while modeling the whole of the distribution.
+- It can be a great resource for conflict scholars studying correlates of war deaths.
+- But a ready-to-use statistical package and guidance on best-practices is missing in the political science literature.
+- This study is a first pass at making this a reality.
+
+# References
+
+\tiny
