@@ -3,7 +3,7 @@ title: "An Actuary Walks into a War Room: Introducing the `{actuwar}` R Package"
 bibliography: "ref.bib"
 author: Miles D. Williams^[Denison University, Granville, OH USA. Contact at mdwilliams@denison.edu.]
 date: "`r Sys.Date()`"
-abstract: "Cunen et al. (2020) recently took the unconventional approach of using a model from actuarial science known as the inverse Burr to study variation in war fatalities. While they tout its usefulness, and show how it can be customized to accomodate covariates in a regression framework, they offer little in the way of guidance on how to use it. They also fail to provide a convenient programming interface to make their modeling approach accessible to conflict scholars. This is a problem, because overcoming the technical challenges associated with modeling war fatalities matters for testing normatively appealing but hottly contested theories such as the decline of war thesis. To fill the gap, first, background on the technical challenges of modeling war fatalities and the promised helpfulness of the inverse Burr model in overcoming these challenges are discussed. Second, practical guidance is offered for how an inverse Burr model of war fatalities might be specified both formally and by way of a new R package called `{invburreg}`, how it is estimated, and how its results should be summarized to capture the nuances that this model is able to capture. Some words of warning are also provided. With proper guidance and accessible tools, the hope is that this model might receive more widespread acceptance within the conflict literature, and in other areas of political science where similar data challenges exist."
+abstract: "This paper introduces an R package called `{actuwar}` that lets researchers estimate an inverse Burr regression model---a specialized statistical model borrowed from actuarial science---for studying war. It also provides background on the method and pratical suggestions on best-practices. As new, high quality and resolution datasets on war fatalities come on line, a method like the inverse Burr will be of greater utility to conflict scholars now than ever. But the absence of an accessible interface, until now, has served as a source of friction slowing its adoption. The `{actuwar}` package, and the guidance in this paper, will hopefully remove some of this friction."
 format: 
   docx:
     reference-doc: word_docx_new_template.docx
@@ -21,25 +21,25 @@ execute:
 
 # Introduction
 
-"An actuary walks into a war room" sounds like the beginning of joke, but the idea matters a great deal for studying war. Actuaries typically work for insurance companies or private firms, and their job is to model financial risk and ruin. That means they care about more than a single point estimate of the expected value of, say, an insurance claim. They care about the probability distribution over the possible claims the insured might make. Often, these claims follow a thick tailed distribution, and because insurance companies want to avoid financial ruin, they take the odds of extreme events seriously and want their actuaries to use the most rigorous methods possible.
+"An actuary walks into a war room" sounds like the beginning of joke, but the idea matters a great deal for studying war. Actuaries typically work for insurance companies or private firms, and their job is to model financial risk and ruin. That means they care about more than a single point estimate of the expected value of, say, an insurance claim. They care about the probability distribution over the possible claims the insured might make. Often, these claims follow a thick tailed distribution, and because insurance companies want to avoid financial ruin, they take the odds of extreme events seriously and want their actuaries to use the most rigorous methods possible to quantify risk.
 
-When @cunen2020 recently used the inverse Burr distribution to model the sizes of international wars, they drew from the deep well of actuarial science. They even used a statistical package created specifically for the purpose of doing actuarial science—an R package called `{actuar}`. What does it mean to approach the study of war through the lens of an actuary? What theoretical framework and assumptions are implied? @cunen2020 say very little about the actuarial roots of their methodology. Though they provide resources to replicate their work, the focus of their study is not to offer guidance on using the inverse Burr, nor is it to provide a convenient programming interface for others to use.
+Some political scientists recently brought actuarial science into the study of war. @cunen2020 did so when they used the inverse Burr distribution to model war size. They even used a statistical package created specifically for the purpose of doing actuarial science—an R package called `{actuar}`. However, while @cunen2020 deserve credit for introducing the method to the field, they say very little about the actuarial roots of their methodology, provide little guidance on using the inverse Burr, and do not offer a convenient programming interface for others to use if they want to apply this model in their own research.
 
-This is a missed opportunity to showcase the potential on offer with Cunen et al.'s approach. It also puts the cart before the horse. Like all actuarial tools, the inverse Burr distribution is intended to solve a particular problem with data, and it is used by actuaries in a particular way. This study is motivated by the goal of better contextualizing the use of the inverse Burr for studying the risk of deadly wars, and providing guidance and resources for researchers interested in implementing this method. The study proceeds in two parts.
+This is a missed opportunity to showcase the potential on offer with Cunen et al.'s approach. This study is motivated by the goal of better contextualizing the use of the inverse Burr for studying the risk of deadly wars, and providing guidance and resources for researchers interested in implementing this method. This includes the introduction of an R package called `{actuwar}` that offers a convenient augmented programming interface (API) for estimating inverse Burr models in the R programming language, widely used by political scientists. The study proceeds in two parts.
 
-First, the problem @cunen2020 turned to actuarial science to solve—the heavy-tailed distribution of war fatalities—is discussed. This problem poses a technical challenge and is source of contention among scholars interested in testing macro trends in war's deadliness. The merits of assessing the risk of deadly wars are self-evident, and by extension, so are the merits of micro-founding methods used to calculate this risk.
+First, the problem @cunen2020 turned to actuarial science to solve—the heavy-tailed distribution of war fatalities—is discussed. This problem poses a technical challenge and is source of contention among scholars interested in testing macro trends in war's deadliness. The merits of assessing the risk of deadly wars are self-evident, and by extension, so are the merits of contextualizing the methods used to calculate this risk.
 
-Second, readers are introduced to the inverse Burr model and how it can be used in conflict research. When @cunen2020 applied the model to the problem of modeling war size, they did not just borrow it from actuarial science, they also innovated by showing that the model could be parameterized with covariates. However, their novel approach lacks a consistent and easily accessible user interface for researchers, or a full explanation of the method's strengths and weaknesses. To facilitate better accessibility, a new statistical package developed in the R programming language is introduced that allows users to estimate an inverse Burr regression model and summarize the results in ways consistent with standard modeling functions in the R programming language. However, because of the unique purpose for which the inverse Burr was intended, assessing its output requires a different approach than most political scientists are accustomed to. The model is ideal, not for generating a unique prediction for war size, but a conditional distribution of possible war sizes that may take on a wide variety of complex shapes. The proposed R package contains tools that make summarizing and visualizing these model outputs as user-friendly as possible.
+Second, readers are introduced to the inverse Burr model and how it can be used in conflict research. When @cunen2020 applied the model to the problem of modeling war size, they did not just borrow it from actuarial science, they also innovated by showing that the model could be parameterized with covariates. However, their novel approach lacks a consistent and easily accessible user interface for researchers, or a full explanation of the method's strengths and weaknesses. To facilitate better accessibility, the `{actuwar}` R package is introduced, which allows users to estimate an inverse Burr regression model and summarize the results in ways consistent with standard modeling functions in the R programming language. However, because of the unique purpose for which the inverse Burr was intended, assessing its output requires a different approach than most political scientists are accustomed to. The model is ideal, not for generating a unique prediction for war size, but a conditional distribution of possible war sizes that may take on a wide variety of complex shapes. The proposed R package contains tools that make summarizing and visualizing these model outputs as user-friendly as possible.
 
-As the world is witnessing an upsurge in conflicts, the need for appropriate analytical tools and the right intuitions for how to use them is timely and necessary. Quantifying the risk of conflict escalation is important not just to academics, but to policy-makers as well. @cunen2020 introduced a helpful tool to conflict scholars for achieving this goal, but for it to be of greatest utility to the field, it is essential that researchers have guidance on how to use it and convenient tools for doing so.
+As the world witnesses an upsurge in conflicts, the need for appropriate analytical tools and the right intuitions for how to use them is timely and necessary. Quantifying the risk of conflict escalation is important not just to academics, but to policy-makers as well. @cunen2020 introduced a helpful tool to conflict scholars for achieving this goal, but for it to be of greatest utility to the field, it is essential that researchers have guidance on how to use it and convenient tools for doing so.
 
-# War, the Power-law, and the Alternative
+# The Power-law and War
 
-One of the foundational questions in the quantitative study of war centers on variation in war deaths. Why are some wars short-lived and result in only a few thousand fatalities, while others last years (even decades) and kill millions? Lewis Fry Richardson[@richardson1948; -@richardson1960] was among the first to approach this question using data. He was preceded in this effort by data collection done by @wright1942study, but Richardson was the first to bring "real statistical acumen," as Braumoeller [-@braumoeller2021trends, 274] put it, to the data the Wrights produced. One of the key observations Richardson made was the fact that many wars are quite small while only a few become especially deadly. In his 1948 work, Richardson noted, in particular, that the distribution of war deaths displays power-law-like behavior, meaning that the wars that are the most deadly are exceptionally huge.
+One of the foundational questions in the quantitative study of war centers on why some wars are very large while most are relatively small. Lewis Fry Richardson[@richardson1948; -@richardson1960] was among the first to approach this question using data. He was preceded in this effort by @wright1942study, but Richardson was the first to bring "real statistical acumen," as Braumoeller [-@braumoeller2021trends, 274] put it, to the subject. One of the key observations Richardson made was the fact that many wars are quite small while only a few become especially deadly. In his 1948 work, Richardson noted, in particular, that the distribution of war deaths displays power-law-like behavior, meaning that the wars that are the most deadly are exceptionally huge.
 
-In the decades since Richardson's work, questions about war started to focus more on dyadic correlates of international conflict rather than trends in war size. This changed after the publication of best-selling book, *Better Angels of Our Nature*, by @pinker2011. Pinker claimed is that international wars, among many forms of violence, have become less deadly over time. This argument, known as the decline of war thesis, is not original to Pinker [see @gaddis1986long], but his book popularized the idea, prompting critical responses from international relations scholars. Some, like @fazal2014dead, raised substantive concerns about using the decline in war deaths over time as evidence of war's disappearance. She contends that improvements in battlefield medicine alone can explain the decline in deaths rather than a decline in bellicosity. Others, like @braumoeller2019, raise methodological concerns about drawing inferences about trends in war deaths because of the power-law-like behavior of war fatalities.
+In the decades since Richardson's work, questions about war started to focus more on dyadic correlates of international conflict rather than trends in war size, but interest in war sized was renewed after the publication of the best-selling book, *Better Angels of Our Nature*, by psychologist Steven @pinker2011. Pinker claimed that international wars, among many forms of violence, have become less common and deadly over time—an argument based on evidence from various datasets that cover centuries of international conflicts. This argument, known as the decline of war thesis, is not original to Pinker [see @gaddis1986long], but his book popularized the idea, prompting critical responses from international relations scholars. Some, like @fazal2014dead, raised substantive concerns about using the decline in war deaths over time as evidence of war's disappearance. She contends that improvements in battlefield medicine alone can explain the decline in deaths rather than a decline in bellicosity. Others, like @braumoeller2019, raise methodological concerns about drawing inferences about trends in war deaths because of the power-law-like behavior of war fatalities.
 
-The latter concern has drawn the most attention from researchers. Just like Richardson found decades ago, more recent and higher quality datasets such as the war series produced by the Correlates of War (CoW) project [@sarkeeswayman2010rw] display extreme variation in war size. Figure 1 shows the variation in total battle deaths recorded per war in the CoW data by the first year the war started. The data documents 95 international wars from 1816 to 2007, and it shows that most of the wars fought during the past two centuries were generally small, while a few were enormous. World War II, the deadliest war in the CoW dataset, had over 16 million recorded battle deaths. This makes up about 51.8% of all battle deaths in the data. World War I and World War II combined make up 78.6% of all battle deaths, and the top 10 deadliest wars account for nearly 95% of all battle deaths. This kind of distribution is far more extreme than a typical Pareto distribution where 20% of observations are responsible for 80% of outcomes.
+The latter concern has drawn the most attention from researchers. Just like Richardson found decades ago, more recent and higher quality datasets such as the war series produced by the Correlates of War (CoW) project [@sarkeeswayman2010rw] display extreme variation in war size. Figure 1 shows the variation in total battle deaths recorded per war in the CoW data by the first year the war started. The data documents 95 international wars from 1816 to 2007, and it shows that most of the wars fought during the past two centuries were generally small, while a few were enormous. World War II, the deadliest war in the CoW dataset, had over 15 million recorded battle deaths. This makes up about 51.8% of all battle deaths in the data. World War I and World War II combined make up 78.6% of all battle deaths, and the top 10 deadliest wars account for nearly 95% of all battle deaths. This kind of distribution is far more extreme than a typical Pareto distribution where 20% of observations are responsible for 80% of outcomes.
 
 ```{r}
 fig <- function(name) {
@@ -58,11 +58,13 @@ $$ {#eq-powerlaw}
 
 The parameter $\alpha$ is known as the power-law slope, and it determines the likelihood of extreme events. Bigger values mean the likelihood of extreme events is lower, while smaller values mean the likelihood of extreme events is higher.
 
-In practice, the power-law has some unique behaviors that pose a challenge for fitting it to real world data and for drawing sensible statistical inferences. One of the most consequential is that if the $\alpha$ parameter is less than or equal to 3, finite variance for the variable $x$ cannot be guaranteed. Even worse, if $\alpha$ is less than or equal 2, a finite mean cannot be identified. This means a power-law fit for the data may yield a result that says the expected magnitude of the variable is statistically indistinguishable from infinity. As it happens, this behavior applies to war. Many recent studies estimate $\alpha$s with values less than 2, and some scholars, like @braumoeller2019, infer from this that extinction-level wars are not just possible but probable, with a higher likelihood than many assume.
+In practice, the power-law has some unique behaviors that pose a challenge for fitting it to real world data and for drawing sensible statistical inferences. One of the most consequential is that if the $\alpha$ parameter is less than or equal to 3, finite variance for the variable $x$ cannot be guaranteed. Even worse, if $\alpha$ is less than or equal 2, a finite mean cannot be identified. This means a power-law fit for the data may yield a result that says the expected magnitude of the variable is statistically indistinguishable from infinity.
 
-In terms of practical challenges, most real-world data do not uniformly obey the power-law. This fact is noted by @clausetEtAl2009 who recommend identifying a minimum value of $x$ such that the data is power-law distributed for all $x \geq x_\text{min}$. While this seems like a compromise, @clausetEtAl2007 argue that in many studies, power-law behavior in the extreme tail of a thick-tailed distribution is of greatest concern to researchers. Some data truncation is a necessary trade-off for ensuring an accurate fit for the power-law for the largest events in the data.
+As it happens, this behavior applies to war. Many recent studies estimate $\alpha$s with values less than 2, and some scholars, like @braumoeller2019, infer from this that extinction-level wars are not just possible but probable, with a higher likelihood than many assume.
 
-This practical concern is also relevant for studying war. Using the CoW dataset used to produce Figure 1, Figure 2 shows the optimal fit for a power-law model to the battle death series. Consistent with best-practice, the appropriateness of the power-law fit for data is shown using a log-log plot where the observed values of battle deaths are shown on the x-axis and the empirical CDF, $\Pr(X > x)$, is shown on the y-axis. Based on the form of the power-law model, in a log-log plot you should see a negative linear correlation between $x$ and $\Pr(X > x)$. Sure enough, this is what we observe in the data. This is with the caveat, however, that we observe power-law behavior for all large $x \geq x_\text{min}$. Specifically, the parameters for the power-law model are $\alpha = 1.525$ and $x_\text{min} = 7,061$. While the power-law slope seems to make for a good linear fit for more extreme wars, and while the minimum war size where the power-law applies is small, because of the extreme distribution in war deaths nearly a majority of the wars in the data *cannot be explained* by the model (46.3% fall below $x_\text{min} = 7,061$).
+In terms of practical challenges, most real-world data do not uniformly obey the power-law. This fact is noted by @clausetEtAl2009 who recommend identifying a minimum value of $x$ such that the data is power-law distributed for all $x \geq x_\text{min}$. While this seems like a compromise, @clausetEtAl2007 argue that in many studies, power-law behavior in the extreme tail of a thick-tailed distribution is of greatest concern to researchers. Some data truncation is a necessary trade-off for ensuring an accurate fit for the largest events in the data.
+
+This practical concern is also relevant for studying war. Using the CoW dataset used to produce Figure 1, Figure 2 shows the optimal fit for a power-law model to the war series. Consistent with best-practice, the appropriateness of the power-law fit for data is shown using a log-log plot where the observed values of battle deaths are shown on the x-axis and the empirical CDF, $\Pr(X > x)$, is shown on the y-axis. Based on the form of the power-law model, in a log-log plot you should see a negative linear relationship between $x$ and $\Pr(X > x)$. Sure enough, this is what we observe in the data, save for one caveat. The power-law only applies to all large $x \geq x_\text{min}$. Specifically, the parameters for the power-law model are $\alpha = 1.525$ and $x_\text{min} = 7,061$. While the power-law slope seems to make for a good linear fit for more extreme wars, and while the minimum war size where the power-law applies is small, because of the extreme distribution in war deaths nearly a majority of the wars in the data *cannot be explained* by the model (46.3% fall below $x_\text{min} = 7,061$).
 
 ```{r}
 fig("fig2.png")
@@ -70,9 +72,9 @@ fig("fig2.png")
 
 Most scholars who have used the power-law to study variation in the size of war accept some data loss as a reasonable trade-off for the ability to accurately fit the power-law for extreme conflicts. However, more recent work by @cunen2020 raises the concern that the conventional power-law model leaves substantial, and informative, variation in war unexplained. By removing observations, @cunen2020 worry that statistical precision is being needlessly sacrificed for the sake of making a square peg fit into a round hole.
 
-While it may seem like methodological splitting hairs, conflicting findings in recent studies suggest that this point has bite. Using power-law models fit before and after World War II and an innovative bootstrapping procedure for statistical inference with power-law slopes, @braumoeller2019 fails to find evidence that wars before and after 1945 are drawn from different distributions. Other work yields similar conclusions \[@clauset2017enduring; @clauset2018trends\], but not all studies agree [@cunen2020]; @spagat2020decline\]. @cunen2020, who use their preferred inverse Burr model, find evidence of a statistically detectable change in the chances of deadly wars in the second half of the 20th century. Unlike work that relies on the classic power-law, their approach uses all of the data in the CoW war series to draw this conclusion, suggesting that inferences with the classic power-law might lack the statistical power to detect a real change in war fatalities.
+While it may seem like methodological splitting hairs, conflicting findings in recent studies suggest that this point has merit. Using power-law models fit before and after World War II and an innovative bootstrapping procedure for statistical inference with power-law slopes, @braumoeller2019 fails to find evidence that wars before and after 1945 are drawn from different distributions. Other work yields similar conclusions [@clauset2017enduring; @clauset2018trends], but not all studies agree [@cunen2020]; @spagat2020decline\]. @cunen2020, who use their preferred inverse Burr model, find evidence of a statistically detectable change in the chances of deadly wars in the second half of the 20th century. Unlike work that relies on the classic power-law, their approach uses all of the data in the CoW war series to draw this conclusion, suggesting that inferences with the classic power-law might lack the statistical power to detect a real change in war fatalities.
 
-To demonstrate, Figure 3 shows the same data as presented in Figure 2. The difference is that the inverse Burr model, suggested by @cunen2020 as an alternative for the power-law, is fit to the data. The inverse Burr is more complex than the classic power-law, allowing it to accommodate power-law behavior in the extreme tail of the distribution while also explaining variation in smaller events that fall below the $x_\text{min}$ threshold required to fit the classic power-law to data.
+To demonstrate the difference in model fit with the inverse Burr, Figure 3 shows the same data as presented in Figure 2, but with the inverse Burr fit to the data rather than the power-law. The inverse Burr is more complex than the classic power-law, allowing it to accommodate power-law behavior in the extreme tail of the distribution while also explaining variation in smaller events that fall below the $x_\text{min}$ threshold required to fit the classic power-law to data.
 
 ```{r}
 fig("fig3.png")
@@ -94,9 +96,9 @@ $$ {#eq-largeinvburr}
 
 This functional form offers more flexibility, which is on display in Figure 3. Rather than being restricted to fitting a linear relationship between $x$ and $\Pr(X > x)$ in log-log space, the inverse Burr can fit a quasi-concave and monotone curve, allowing it to capture both small values of $x$ as well as very large values in a thick-tailed distribution.
 
-While @cunen2020 tout the inverse Burr as an unproblematic alternative to the power-law, it should be noted that it under-predicts the likelihood of the most extreme wars in the CoW battle death series—a fact that is clearly visible in Figure 3. This is a point that others have raised [@braumoeller2021trends], but it is premature to dismiss the inverse Burr simply for this reason, because there is one additional promised benefit of the inverse Burr as opposed to the classic power-law that may off-set this limitation: its ability to model the distribution of $x$ in a regression model framework.
+While @cunen2020 tout the inverse Burr as an unproblematic alternative to the power-law, it should be noted that it under-predicts the likelihood of the observed battle deaths in the most extreme wars in the CoW data—a fact that is clearly visible in Figure 3. This is a point that others have raised [@braumoeller2021trends], but it is premature to dismiss the inverse Burr simply for this reason, because there is one additional promised benefit of the inverse Burr as opposed to the classic power-law that may off-set this limitation: its ability to model the distribution of $x$ in a regression model framework.
 
-In their study, @cunen2020 showcase this strength by parameterizing their inverse Burr model using both a binary indicator for the time period (before or after a particular cut-point) for the $\mu$ and $\theta$ parameters, as well as a continuous covariate (the average polity score among countries fighting a war) that is part of the $\mu$ parameter as well. In particular, they specify that:
+In their study, @cunen2020 demonstrate this strength by parameterizing their inverse Burr model using both a binary indicator for the time period (before or after a particular cut-point) for the $\mu$ and $\theta$ parameters, as well as a continuous covariate (the average polity score among countries fighting a war) that is part of the $\mu$ parameter as well. In particular, they specify that:
 
 $$
 \mu_{L,i} = \mu_{L,0}\exp(\beta_L w_i) \quad \text{and} \quad \mu_{R,i} = \mu_{R,0}\exp(\beta_Rw_i)
@@ -104,23 +106,25 @@ $$ {#eq-cunenspec}
 
 along with $\theta_L$, $\theta_R$ and a constant $\alpha$. The value $w_i$ represents average polity scores, and the $\beta$ parameters capture how democracy scores differently predict the central tendency $\mu$ before and after the specified cut-point.
 
-The ability to incorporate covariates into the estimation of an inverse Burr model potentially off-sets its inferior performance in the extreme tail of the CoW conflict series. As @cunen2020 note, their parameterized model offers a superior fit for the data relative to a basic inverse Burr model that assumes constant $\mu$, $\alpha$, and $\theta$.
+The ability to incorporate covariates into the estimation of an inverse Burr model potentially off-sets its inferior performance in the extreme tail of the CoW conflict series. And ss @cunen2020 note, their parameterized model offers a superior fit for the data relative to a basic inverse Burr model that assumes constant $\mu$, $\alpha$, and $\theta$.
 
 The significance of this approach goes beyond providing a better fit with greater statistical precision. @cunen2020 use it to offer affirmative evidence consistent with the decline of war thesis, and they provide substantive insight into the role of democracy in explaining variation in war size. First, using an innovative change-point algorithm, @cunen2020 identify 1950 as the best fitting cut-point in the CoW series. At that cut-point, the difference in inverse Burr fits before and after are statistically distinguishable, with the post-1950 data consistent with a decline in the chance of particularly large wars.
 
 Second, @cunen2020 show that democracy has little correspondence with war size before 1950, but that democracy predicts smaller wars after 1950. This finding applies specifically to the central tendency $\mu$, and means that when the average democracy score among countries fighting a war increases, the scale of wars declines.
 
-Cunen et al.'s finding with respect to democracy is truly unique and novel. But the real gift their approach offers to conflict scholars is their methodology for identifying this relationship. The ability to model war size, not just as a stationary series, or by fitting separate models to discrete periods, offers researchers greater flexibility in identifying nuanced relationships between factors of interest and the deadly potential of war.
+Cunen et al.'s finding with respect to democracy is truly unique and novel, but the real gift their approach offers to conflict scholars is their methodology for identifying this relationship. The ability to model war size, not just as a stationary series, or by fitting separate models to discrete periods, offers researchers greater flexibility in identifying nuanced relationships between factors of interest and the deadly potential of war.
 
-This, however, is where Cunen et al.'s [-@cunen2020] study ends and the contribution of this one begins. If a tool like the inverse Burr model is to have more wide-spread acceptance among conflict scholars interested in testing theories about war size, more guidance is required than @cunen2020 offer in their paper. While they do have an online appendix and make their R code available for implementing their method, Cunen et al. offer little in the way of practical guidance or a convenient user interface for applied researchers. This study is motivated by the desire to fill this gap by offering these resources to conflict scholars. The next section offers a brief primer on the inverse Burr, and the one that follows offers an applied example for how to use the inverse Burr to study war.
+This, however, is where Cunen et al.'s [-@cunen2020] study ends and the contribution of this one begins. If a tool like the inverse Burr model is to have more wide-spread acceptance among conflict scholars interested in testing theories about war size, more resources and guidance are required than @cunen2020 offer in their paper. While they have an online appendix and make their R code available for implementing their method, Cunen et al. offer little in the way of practical advice or a convenient user interface for applied researchers.
+
+This study is motivated by the desire to fill this gap by offering these resources to conflict scholars. The next section offers a brief primer on the inverse Burr, and the one that follows introduces a new R package and an applied example for how to use the inverse Burr to study war.
 
 # A Brief Primer on the Inverse Burr
 
-Like many innovations in statistics, the inverse Burr distribution was introduced at various points in different fields, and called by different names. @kleiber2008guide offers a concise history, noting in particular the equivalence between the inverse Burr, as it is known in actuarial science [@kleiber2003statistical; @klugman2012loss], and the Dagum distribution as it is known in some corners of economics where, for decades, it was mostly limited to non-English speaking journals. The genesis of the inverse Burr, or the Dagum distribution in particular, was the need to identify a better distributional model for income and wealth than either the log-normal or Pareto distributions. Unsatisfied with these options, in the 1970s Camilo Dagum [-@dagum1977anm] proposed a three parameter distribution, which would become his namesake, that blended the Pareto distribution's ability to handle thick-tailed data and the log-normal's ability to capture an interior mode, or peak in the density function [@kleiber2008guide]. The flexibility of the form that became the Dagum/inverse Burr model is such that it not only can handle thick-tailed data with an interior mode, but it can also capture zero-mode data (more akin to the classic power-law).
+Like many innovations in statistics, the inverse Burr distribution was introduced at various points in different fields, and called by different names. @kleiber2008guide offers a concise history, noting in particular the equivalence between the inverse Burr, as it is known in actuarial science [@kleiber2003statistical; @klugman2012loss], and the Dagum distribution as it is known in some corners of economics where, for decades, it was mostly limited to non-English speaking journals. The genesis of the inverse Burr, or the Dagum distribution in particular, was the need to identify a better distributional model for income and wealth than either the log-normal or Pareto distributions. Unsatisfied with existing options, in the 1970s Camilo Dagum [-@dagum1977anm] proposed a three parameter distribution, which would become his namesake, that blended the Pareto distribution's ability to handle thick-tailed data and the log-normal's ability to capture an interior mode, or peak in the density function [@kleiber2008guide]. The flexibility of the form that became the Dagum/inverse Burr model is such that it not only can handle thick-tailed data with an interior mode, but it can also capture zero-mode data (more akin to the classic power-law).
 
 The impact that the three inverse Burr parameters have on the form of the density function is demonstrated in the next three figures (see @eq-burrdens for the density function). In each, one of the parameters is changed while holding the others fixed. This helps to show how an increase in each changes the mode of the data and the thickness of the distribution, both up to the mode and after it.
 
-First, consider Figure 4. It shows how the density function of the inverse Burr changes for $x \in [0, 10]$ where $\mu \in \{0.5, 1, 2, 4 \}$ and $\alpha = \theta = 2$. For this particular arrangement of parameters, as $\mu$ increases, so does the mode, or peak, of the data's density distribution. In fact, holding the other parameters constant at 2, $\mu$ is approximately equivalent to the mode of the data.
+First, consider Figure 4. It shows how the density function of the inverse Burr changes for $x \in [0, 10]$ where $\mu \in \{0.5, 1, 2, 4 \}$ and $\alpha = \theta = 2$. For this particular arrangement of parameters, as $\mu$ increases, so does the mode, or peak, of the density distribution. In fact, holding the other parameters constant at 2, $\mu$ is approximately equivalent to the mode of the data.
 
 ```{r}
 fig("fig4.png")
@@ -140,17 +144,19 @@ fig("fig6.png")
 
 These three examples do not begin to scratch the surface of the inverse Burr's flexibility, but they do offer a sample of what the three key parameters of the model imply for data. An increase to the scale parameter $\mu$ increases the mode of the data, an increase to the $\alpha$ parameter increases both the mode and shrinks the lower tail of the data, and an increase to $\theta$ increases the mode and shrinks the lower and upper tails of the data. This combination gives the inverse Burr a high degree of built-in flexibility, which is part of the rationale @cunen2020 offer for preferring it to the classic power-law for studying war. If a further set of examples were considered, one would quickly realize that the clean delineation between these parameters and the shape of the distribution has exceptions due to the non-linear specification of the model.
 
-This flexible combination offers more than a subtle hint that modeling data using the inverse Burr requires attention to more than just the central tendency of the data. Camil Dagum's goal in producing the functionally equivalent Dagum distribution was to provide an appropriate fit for the whole of a distribution. He wanted to explain not just the position of the mode, but also the density of observations leading up to and following it.
+This flexible combination demonstrates that modeling data using the inverse Burr requires attention to more than just the central tendency of the data. Camil Dagum's goal in producing the functionally equivalent Dagum distribution was to provide an appropriate fit for the whole of a distribution. He wanted to explain not just the position of the mode, but also the density of observations leading up to and following it.
 
-As a consequence, parameterizing the inverse Burr with covariates requires paying close attention to how the model is specified and, then, to how its results are interpreted. Such a goal is more comprehensive than is the norm in political science. It also has the potential to be somewhat confusing for those being newly introduced to this approach. The next section therefore walks through an applied example for how to use the inverse Burr, using the CoW war series to illustrate. This section also includes R code for an associated package called `{actuwar}` for using the inverse Burr to model war.
+As a consequence, parameterizing the inverse Burr with covariates requires paying close attention to how the model is specified and, then, to how its results are interpreted. Such a goal is more comprehensive than is the norm in political science. It also has the potential to be somewhat confusing for those new to this approach. The next section therefore walks through an applied example to make the application of this method more concrete.
 
-# Using the Inverse Burr to Study War
+# Introducing `{actuwar}`
 
-This section introduces an R package called `{actuwar}` that allows users to estimate an inverse Burr regression model with a variety of covariates. The following sub-sections break the process down into discrete chunks: specification, estimation, and summarizing results. A word of warning when using the inverse Burr is also offered. Note that the results presented in this section are mainly for illustrative purposes. Any inferences drawn about war size should be interpreted with all due caution.
+This section offers an applied example of using the inverse Burr to study war, and it introduces an R package called `{actuwar}` that allows users to estimate an inverse Burr regression model with a variety of covariates. The following sub-sections cover the basics of installation, model specification, and analysis of results. Some words of warning are also included.
 
-## Specification
+Note that the results presented in this section are mainly for illustrative purposes. Some interesting findings are discussed, but inferences drawn about war size should be interpreted with all due caution.
 
-As noted before, the inverse Burr has three parameters, and each can be specified as a function of covariates or left as a constant. Modeling these parameters can be done by applying a non-linear transformation to a linear weighted sum of covariates, just like more common generalized linear models. @cunen2020, for example, use the exponent, which is also the approach taken here. Each of the inverse Burr parameters is strictly positive, and using the exponent preserves this quality regardless of the values generated by the linear sum of model covariates.
+## Formal Specification and Details about Estimation
+
+As noted before, the inverse Burr has three parameters, each of which can be specified as a function of covariates or left as a constant. Modeling these parameters can be done by applying a non-linear transformation to a linear weighted sum of covariates, as with other generalized linear models. @cunen2020, for example, use the exponent, which is also the approach taken here. Each of the inverse Burr parameters is strictly positive, and using the exponent preserves this quality regardless of the values generated by the linear sum of model covariates.
 
 Deviating somewhat from @cunen2020, a convenient way to express the specification of each of the parameters is as follows. For an inverse Burr model fit to an outcome variable $x_i$, let the density distribution for this function be given as:
 
@@ -182,160 +188,208 @@ $$
 \end{aligned}
 $$ {#eq-warspec}
 
-For analysis, it is possible to program such a regression model using software like R, which is the approach that @cunen2020 took in their own analysis. While the user could be left to either copy and augment the code made available by @cunen2020, this is a sub-optimal approach for most researchers using the R programming language. Most R users are initially trained in regression analysis using a specific user interface. Users give data to a function, like `lm()`, and represent the model they want to estimate by creating a formula object, using syntax like `outcome ~ var1 + var2`.
-
-To bring the user interface for inverse Burr models more in line with this convention, the `{actuwar}` R package was created.[^2] It makes it possible to specify an inverse Burr regression with all the specificity this kind of model requires using syntax that is mostly consistent with basic R modeling functions. The below code snippet offers an example estimating the model formally specified above.
-
-[^2]: The development version of the package can be accessed here: <https://github.com/milesdwilliams15/invburreg/tree/main>.
-
-```{r}
-#| eval: false
-#| echo: true
-
-## open the package and access the wars example data
-library(actuwar)
-data("wars") # open example CoW wars dataset with covariates
-
-## fit an inverse Burr model to data
-model_fit <- ibm(
-  outcome = fat,
-  mu = ~ post1950 + dem + pop,
-  alpha = ~ post1950 + dem + pop,
-  theta = ~ post1950 + dem + pop,
-  data = wars
-)
-
-```
-
-The main function for estimating an inverse Burr model is called `ibm()`, which has a similar interface to a function like `lm()` which is used to estimate a linear model in R. Reflecting the complexity of the inverse Burr model, however, the code uses a slightly modified syntax compared with `lm()`. There are three parameters that can accommodate covariates, and so there are three places in the `ibm()` function, to specify a parameter-specific formula. Note that, unlike typical approaches, only the right-hand side of the formula is required for each parameter. Since there can only be one outcome variable, the option `outcome` allows users to specify the outcome only once so that it does not have to be repeated for each parameter-specific formula. The object called `model_fit` is now the saved estimated inverse Burr model for war size.
-
-## Estimation
-
-Over the years, many different methods for fitting the inverse Burr to data have been proposed. Early efforts relied on non-linear least squares, but today, maximum likelihood estimation (MLE) is the recommended approach [@kleiber2008guide]. @cunen2020 use MLE in their own analysis of the CoW war data.
-
-Other technical resources exist if readers are interested in the specifics of MLE for the inverse Burr [@dey2017dagum], but a short summary is offered here. Given an outcome $x_i$, the optimal values of $\hat \mu_i$, $\hat \alpha_i$, and $\hat \theta_i$ are those that maximize (expressed in log-form):
+To then estimate the parameter-specific coefficients for each of the covariates in the inverse Burr model, maximum likelihood estimation (MLE) is used, which is the recommended approach. Given an outcome $x_i$, the optimal values of $\hat \mu_i$, $\hat \alpha_i$, and $\hat \theta_i$ are those that maximize (expressed in log-form):
 
 $$
 L = \sum_{i = 1}^n \log[\text{Burr}^{-1}(x_i; \hat \mu_i, \hat \alpha_i, \hat \theta_i)]
 $$ {#eq-mle}
 
-As with most MLE methods, a closed form solution does not exist, so a numerical optimizer is required. @cunen2020 use the method developed by @nelder1965simplex, which is also the same method used by the `{actuwar}` package.
+As with most MLE methods, a closed form solution does not exist, so a numerical optimizer is required. @cunen2020 use the method developed by @nelder1965simplex, which is also the same method used by the `{actuwar}` package. Numerous technical resources exist if readers are interested in going deeper with the MLE for the inverse Burr [@dey2017dagum].
 
-While estimation is straightforward, inference for inverse Burr parameters is somewhat fraught. @cunen2020 opt to use the Hessian to calculate parameter standard errors, but in practice this does not always work. In trials done by this author, there are certain combinations of model specifications and predictors that yield an indefinite Hessian, even though the @nelder1965simplex method was able to identify a unique solution. For this reason, the `{invburreg}` package relies on bootstrapping to compute standard errors. The trade-off is that while bootstrapping offers a consistent and robust estimate of parameter variance, it can be computationally demanding. Users can specify how many bootstrap iterations `ibm()` will implement as an option before estimating a model.
+For statistical inference, @cunen2020 use the Hessian for standard errors. However, in numerous trials by this author, a finite Hessian was not always guaranteed. This poses an obvious problem. Therefore, inference is done using bootstrapping to ensure robust and consistent standard errors every time.
 
-## Summarizing Results
+## Installation and How to Use
 
-There are several ways to summarize the results for an inverse Burr regression. Two approaches are presented here. The first is by way of a regression table. This is the format that most journals in political science expect to see regression results presented, and it is trivial to do for inverse Burr models. However, there are some important considerations to keep in mind.
+The following R code will install the latest development version of the `{actuwar}` package:
 
-For one, since covariates can be used to fit three different parameters, this will need to be signaled somehow in the table. It might be appropriate either to use row headings for model predictors, or to have multiple columns. In Table 1, the second approach is adopted. Results are shown for two different inverse Burr models. One is a *Baseline* model that includes no covariates, and the other is a *Covariate* model where a post-1950 indicator, average polity, and the log of pooled country population are used as predictors for all three inverse Burr parameters. There are six columns in total, two for each of these parameters with a label indicating which parameter estimates they are associated with. Note that the parameters are labelled as the log of their value. This is because the exponential transformation was used to transform the linear component of the model to ensure fitted parameter values are strictly positive.
-
-```{r}
-fig("fig_regtab.png")
+```         
+install.packages("devtools")
+devtools::install_github("milesdwilliams15/actuwar")
 ```
 
-While the presentation of the model in a regression table is more involved, many elements of the output remain familiar. Each cell entry is a coefficient estimate for the relevant parameter ($\alpha$, $\mu$, or $\theta$) and standard errors are shown in parentheses with statistical significance indicated using stars.
+The `{actuwar}` package was designed with the end-user in mind. That means its workhorse function for estimating an inverse Burr regression model, like the one of battle deaths specified in the previous section, follows the same conventions as other regression model functions R users are accustomed to, such as `lm()`.
 
-To access all this information necessary to construct a regression table, one can access a built-in model summary in an inverse Burr model object. As the below code example demonstrates, once a model is estimated, a model summary can be pulled out of the object using the `$` operator.
+However, the inverse Burr is more complex than a simple linear regression where the goal is to model the conditional mean of an outcome. As already noted, the inverse Burr has three parameters, a scale and two shape parameters, any of which can be left constant or conditioned on covariates. The model specified in the previous section uses the same three factors to condition all three parameters. The programming interface, therefore, is a bit more involved---but only just. The below code snippet shows the code for estimating the inverse Burr model of battle deaths. The relevant variables are in a dataset called `wars`, which is made available with the `{actuwar}` package. The code works by specifying the outcome variable separately and then supplying up to three right-hand side only formula objects for each of the three model parameters: `mu` for the scale (or central tendency), `alpha` for the density to the left of the mode, and `theta` for the density to the right of the mode. If any one or all of these parameters is not specified, then the parameter is treated by default as a constant in model estimation.
 
-```{r}
-#| echo: true
-#| eval: false
+```         
 library(actuwar)
-data("wars") 
+data("wars") # use `wars` data object with {actuwar}
 
-model_fit <- ibm(
+ibm(
   outcome = fat,
-  mu = ~ post1950 + dem + pop,
-  alpha = ~ post1950 + dem + pop,
-  theta = ~ post1950 + dem + pop,
+  mu = ~ post1950 + pop + dem,
+  alpha = ~ post1950 + pop + dem,
+  theta = ~ post1950 + pop + dem,
   data = wars
-)
-
-## look at the model summary
-model_fit$out
+) -> model_fit
 ```
 
-```{r}
-#| eval: true
-#| echo: false
-library(tidyverse)
-library(invburreg)
-data("wars") 
+Run time for estimating the model using the above code will vary based on a number of factors. Perhaps the most relevant stems from the fact that inference for the model is done using bootstrapping, as noted in the previous section. This means, unfortunately, that the above code may take a while to run. Depending on the size of your data, run time could last several seconds to minutes (or even longer if your data is quite large).
 
-model_fit <- ibm(
+Thankfully, if this is an issue, one can directly control the number of bootstrap iterations using the `its` command in `ibm()` (the default is 2,000). In addition, to provide some efficiency boosts, the `ibm()` function uses the `{furrr}` package under the hood to perform bootstrapping, which gives users the option to set up parallel processing in their R session. Depending on the number of cores on your machine, this can cut run time in half, if not more. The below code has been modified to set up parallel processing prior to using the `ibm()` function:
+
+```         
+## open {furrr} and set up for multiple sessions
+library(furrr)
+cores <- availableCores() - 1
+plan(multisession, workers = cores)
+
+## estimate the model
+ibm(
   outcome = fat,
-  mu = ~ post1950 + dem + pop,
-  alpha = ~ post1950 + dem + pop,
-  theta = ~ post1950 + dem + pop,
+  mu = ~ post1950 + pop + dem,
+  alpha = ~ post1950 + pop + dem,
+  theta = ~ post1950 + pop + dem,
   data = wars
-)
-
-## look at the model summary
-model_fit$out
+) -> model_fit
 ```
 
-Before turning to the next method of summarizing results, consider the estimates shown in Table 1. For this specification of the inverse Burr model for war fatalities, the only model parameter where covariates are statistically significant is $\alpha$. Recall from the previous section that this term captures both variation in the location of the mode and the thickness of the right-hand side of the distribution. An increase in $\alpha$ increases both the mode while reducing the likelihood of small events. Among the three factors included in the model, average democracy and pooled belligerent population are the only significant factors. Contrary to @cunen2020, the post-1950 indicator is not significant, though its sign is consistent with a lower mode and higher likelihood of small wars. Meanwhile, an increase in the pooled population of belligerents increases modal fatalities and reduces the chances of a smaller war. Surprisingly, democracy scores do as well, which conflicts with the findings of @cunen2020.
+The `ibm()` function has some other settings as well. For example, one can choose whether the `ibm()` function "talks" to you about the progress it's making in estimating the model by setting `verbose` to `TRUE` or `FALSE`. The default is `TRUE`. As a matter of preference, some may like having a visual cue that the model is working (especially if run time takes a while), but others may prefer to avoid the clutter.
 
-These conclusions are about as far as a regression table can take us. Because of the non-linear nature of the inverse Burr model, the results are better visualized. As will be shown, visualizing the data also reveals ways that the regression estimates when viewed on their own can be misleading.
+Once the model is estimated, to see the regression results summary you can pull it directly from the fitted model object using `.$summary`. Note that the summary is saved in a "tibble"---a tidy table created using the `{tibble}` R package. Following normal conventions for tidy regression model output, there are columns named `term`, `estimate`, `std.error`, `statistic`, and `p.value`. These show the name of the model predictor, the coefficient estimate, its standard error, the test statistic, and the p-value, respectively. There is an additional `param` column, too. This indicates which of the three inverse Burr parameters a term was used to model.
 
-The approach taken by the `{actuwar}` package is to simulate draws from a fitted inverse Burr distribution, holding covariates constant at quantities of interest, and then to show the results in a log-log plot similar to those presented in an earlier section. Draws from different configurations of covariates or different models can be compared in a single visualization. Figure 7 offers an example. Results for both the *Baseline* and the *Covariate* models are shown. For the latter, a distribution of war deaths is simulated holding covariates constant at their values for World War II. For reference, the empirical CDF for World War II is shown in the plot as well.
+```         
+model_fit$summary
+
+# A tibble: 12 × 6
+   param term        estimate std.error statistic p.value
+   <chr> <chr>          <dbl>     <dbl>     <dbl>   <dbl>
+ 1 mu    (Intercept)  -0.609     0.757     -0.804   0.422
+ 2 mu    log(pop)      0.744     1.23       0.607   0.544
+ 3 mu    maj          -0.779     0.795     -0.981   0.326
+ 4 mu    dem          -0.982     0.404     -2.43    0.016
+ 5 alpha (Intercept)   0.123     0.964      0.127   0.898
+ 6 alpha log(pop)      1.78      0.688      2.58    0.01 
+ 7 alpha maj          -0.170     0.655     -0.260   0.794
+ 8 alpha dem           0.445     0.285      1.56    0.118
+ 9 theta (Intercept)   0.436     0.591      0.738   0.46 
+10 theta log(pop)     -0.377     0.261     -1.44    0.15 
+11 theta maj          -0.113     0.134     -0.846   0.398
+12 theta dem          -0.0138    0.0373    -0.370   0.712
+```
+
+Other objects can be pulled out of the model as well: the empirical distribution of bootstrapped parameters (`.$boot_values`), the model data (`.$model_data`), and the negative log likelihood (`.$logLik`).
+
+## Visualizing Data
+
+Prior to model estimation, one may want to visualize an outcome variable of interest in a log-log plot of the $\Pr(X > x)$ per observed values of $x$ in the data to visually check whether the data displays a characteristically thick right-hand tail that one would see with the inverse Burr distribution. The `{actuwar}` package has a function called `llplot()` that will produce such a plot. It is an opinionated wrapper for a plot produced using the popular `{ggplot2}` package.
+
+The below code will produce a log-log plot for the $\Pr(X > x)$ given $x$ for battle deaths in the CoW war series. The results are shown in Figure 7. The `llplot()` function needs only a data object and a variable from the data to do its job. The output is "bare bones," but because the output is a `ggplot()` object, it is infinitely customization using the suite of tools available with the `{ggplot2}` package and other related packages in the `{ggplot2}` orbit.
+
+```         
+llplot(wars, fat)
+```
 
 ```{r}
 fig("fig7.png")
 ```
 
-The simulated inverse Burr distributions from these two models show that the *Covariate* model makes for a much better fit for World War II than the *Baseline* model. The former generates a distribution that substantially under predicts $\Pr(X > x)$ for World War II. Conversely, World War II could very easily have been drawn from the conditional inverse Burr distribution fit with covariates. This is one of the purported benefits of the inverse Burr model. It's built-in flexibility is enhanced by incorporating covariates.
+`llplot()` has two additional features. First, it can produce a log-log plot with $\Pr(X > x)$ grouped by a categorical variable or factor. For example, the below code will group the data by whether a war started before or after 1950. The results are shown in Figure 8.
 
-This method of presenting model results can also be a good way to present the conditional impact of different covariates. Because of the non-linear nature of the inverse Burr, significant predictors in one model parameter can still impact variation in other parts of the distribution. This fact is on display in Figure 8, which shows simulated CDFs of war deaths based on the *Covariate* model. Holding the other factors constant at their mean, the average polity of belligerents is allowed to vary from -10, to 0, to 10.
+```         
+llplot(wars, fat, by = post1950)
+```
 
 ```{r}
 fig("fig8.png")
 ```
 
-The figure shows that the overall shape of the fatality distribution changes conditional on polity, and in somewhat counter-intuitive ways. Consistent with the inference made when discussing the results in Table 1, an increase in the average polity scores among belligerents increases the mode of the distribution and appears to reduce the likelihood of smaller wars. At the same time, the upper tail of the distribution becomes thinner, and substantially so. That means that as the average polity score among belligerents increases, the likelihood of extremely huge wars declines. This is a finding that would have been missed if basing this inference exclusively on it's significance in fitting the $\theta$ parameter which controls the shape of the right-hand tail of the distribution.
+The second additional feature is that `llplot()` will draw the inverse Burr fit for the data points shown in the plot. This feature works both for ungrouped and grouped data points. The below code produces a plot with $\Pr(X > x)$ for battle deaths grouped by whether the war started before or after 1950, and it adds inverse Burr fits for each group of data points.
 
-Using `{actuwar}`, the code to produce a figure like the one above is straightforward. The function `ibm_sim()` will simulate draws from an inverse Burr model estimated with `ibm()`, and it can do holding certain model covariates fixed while allowing one or more to vary. To do this, a user can give `ibm_sim()` a fitted, and then specify a `newdata` object to pass to the function to use for simulating data. The interface is quite similar to the `predict.lm()` function used to get predictions from a linear model in R. The code below shows how to reproduce simulated data that was use to make Figure 8.
+```         
+llplot(wars, fat, by = post1950, show_fit = T)
+```
 
 ```{r}
-#| eval: false
-#| echo: true
+fig("fig9.png")
+```
+
+## Summarizing Model Results
+
+Once an inverse Burr model is estimated, there are several ways to summarize the results for an inverse Burr regression to draw inferences. Two approaches are presented here. The first is by way of a regression table. This is the format that most journals in political science expect, and it is trivial to do for inverse Burr models using the tibble summary saved in an estimated inverse Burr model object.
+
+However, there are some important considerations to keep in mind when producing and interpreting an inverse Burr regression table. For one, since covariates can be used to fit three different parameters, this will need to be signaled somehow in the table. It might be appropriate either to use row headings for model predictors, or to have multiple columns. In Table 1, the second approach is adopted. Results are shown for two different inverse Burr models. One is a *Baseline* model that includes no covariates, and the other is a *Covariate* model where a post-1950 indicator, average polity, and the log of pooled country population are used as predictors for all three inverse Burr parameters. There are six columns in total. Note that the parameters are labelled as the log of their value. This is because the exponent was used to transform the linear component of the model to ensure fitted parameter values are strictly positive. Estimates, therefore, are interpreted as a change to the log of a model parameter.
+
+```{r}
+fig("fig_regtab.png")
+```
+
+All the information necessary to construct a regression table like the one presented here can be accessed using the `.$summary` component in the fitted model object. Because there are many different ways to construct a regression table in R, a detailed example for how Table 1 was constructed is not included here.
+
+The results shown in Table 1 are quite interesting, but they should be interpreted with caution. First, the post-1950 indicator is statistically significant only for the scale parameter $\mu_i$. Its positive sign means that conflicts after 1950 have a larger expected scale than those before (e.g., a higher central tendency). This is quite the surprising finding since it directly contradicts @cunen2020 who find that wars after 1950 are statistically smaller than those before.
+
+None of the results for democracy are statistically significant. This is perhaps not so surprising. The current model assumes that democracy's predictive importance is constant across time, but @cunen2020 find that only in the post-1950 period does a higher average democracy score among belligerents predict a change in the odds of a massive war.
+
+Finally, population is statistically significant for both shape parameters, but not the scale. Most interestingly, the changes it predicts for both shape parameters work in countervailing directions. Wars fought by belligerents with larger combined populations have a statistically lower chance of a small war, as suggested by the positive coefficient for the $\alpha_i$ parameter. But the chance of a massive war is also smaller, as suggested by the positive coefficient for the $\theta_i$ parameter. One purely speculative explanation for this finding is the law of large numbers. Wars fought among large countries see less variation in war deaths from the expected scale while those fought among small countries will see more variation.
+
+As interesting as these conclusion from the regression table are, looking at the raw model output is insufficient for drawing firm conclusions about how certain factors predict a change in the odds of seeing small or large wars. Because of the non-linear nature of the inverse Burr model, it is far better to visualize a conditional distribution for the outcome of interest.
+
+The approach recommend with the `{actuwar}` package is to simulate draws from a fitted inverse Burr distribution, holding covariates constant at quantities of interest, and then to show the results in a log-log plot. Draws from different configurations of covariates or different models can be compared in a single visualization to show how they influence the shape of the distribution.
+
+Figure 10 offers an example. It shows the conditional distribution of battle deaths contingent on the pooled belligerent populations. Values selected were based on the minimum and maximum observed values in the dataset—1.14 million and well over 1 billion, respectively. Democracy was held constant and the sample mean and the period indicator was set to post-1950. The results differ from the interpretation of the results in Table 1. Countries with larger populations fighting a war can expect both a lower chance of small wars, and a higher chance large wars. A key driver of this difference is that the simulated results factor in parameter uncertainty. While the raw model parameters suggested one thing, the range of results consistent with the model at different covariate levels says another.
+
+```{r}
+fig("fig10.png")
+```
+
+A figure like the one above can be produced using a combination of a function called `ibm_sim()` and `llplot()`. The below code will reproduce the same results shown in Figure 10.
+
+```         
 ibm_sim(
   model_fit,
   newdata = tibble(
-    post1950 = mean(wars$post1950),
-    dem = c(-10, 0, 10),
-    pop = mean(wars$pop)
-  )
-) -> dem_sim
+    dem = mean(wars$dem),
+    pop = range(wars$pop),
+    post1950 = "post-1950"
+  ),
+  se = T
+) -> cov_sim
 
+llplot(cov_sim, pred, by = as.factor(pop))
 ```
 
-## A Word of Warning
+One final quantity of interest that researchers often have an interest in when modeling data with extreme tails is the probably of observing an outcome greater than some threshold of interest. Using `{actuwar}` one can obtain not only observed, but also predicted, probabilities along with confidence intervals. The below code shows how this can be done using the simulated battle deaths shown in Figure 10. A function called `boot_p()` will return a summary of the estimated $\Pr(X > x)$ along with confidence intervals. The below code specifies 83.4% confidence intervals, which provide the appropriate coverage for a test of non-lap at the 95% level. The results show that the probability of a war with more than 16 million battle deaths is substantially and significantly higher for wars fought by countries with larger populations. The output is summarized in Figure 11.
 
-The inverse Burr model can be a helpful tool in the study of war. The previous sections make this clear. It offers a flexible distributional form that is amenable to analysis in a regression framework, and with the right tools it is easy to summarize model results to show the substantive impact of certain covariates on war deaths.
+```         
+cov_sim |>
+  group_by(pop) |>
+  boot_p(pred, thresh = 16e06, ci = .834)
+```
 
-There is one major limitation worth mentioning, however. The model is sensitive to the scale of covariates as well as the outcome. Consider Table 2, which shows the results for the same *Covariate* model presented in Table 1 and a similar model using the very same data, with the caveat that war fatalities have been rescaled. The results are different. Following @cunen2020, two changes were made to fatalities. First, since no war in the data can have less than 1,000 total deaths, the data is shifted downward so that the smallest war is now of size 1. Second, to add extra variation to smaller wars (there are several that clock in at 1,000) they are recoded to have values between 1 and 9. This transformation, while having no real impact on the ordering of the fatality data, does influence the fit of the inverse Burr model. Seemingly innocuous transformations like this can add up to dramatically different results.
+```{r}
+fig("fig11.png")
+```
+
+## A Word of Warning About Data Transformations
+
+Before concluding, a word of caution about inverse Burr models and data transformations. The inverse Burr can be a powerful tool for assessing the risk of extreme events, such as war deaths, and the `{actuwar}` package provides a wide set of tools to simplify the process. But inverse Burr models, as with many other models, have some unfortunate limiations. One, however, bears special mention: the inverse Burr is highly sensitive to the scale of covariates as well as the outcome.
+
+Consider Table 2, which shows the results for the same *Covariate* model presented in Table 1 and a similar model, using the very same data, with the caveat that war fatalities have been rescaled. Following @cunen2020, two changes were made to fatalities. First, since no war in the data can have less than 1,000 total deaths, the data is shifted downward so that the smallest war is now of size 1. Second, to add extra variation to smaller wars (there are 9 that have 1,000 deaths exactly) they are recoded to have values between 1 and 9.
+
+The results are dramatically different. Following the transformation, population no longer signficantly predicts variation in any of the inverse Burr parameters. Furthermore, the post-1950 indicator no longer significantly predicts variation in the scale parameter; instead it predicts significant variation in the second shape parameter, $\theta_i$. Specifically, it predicts a downward shift in the parameter which implies an increase in the odds of a larger event in the extreme tail of the distribution.
 
 ```{r}
 fig("fig_regtab2.png")
 ```
 
-Because the inverse Burr can be so sensitive to the scaling of the outcome, any transformations that a researcher wants to apply should be clearly justified. Even then, it may be advisable to report estimates with and without this desired transformation to check whether, and by how much, it changes the results.
+Because the inverse Burr can be so sensitive to the scaling of the outcome, any transformations that a researcher wants to apply should be clearly justified. Even then, it may be advisable to report estimates with and without a desired transformation to check whether, and by how much, it changes the results.
 
 # Conclusion
 
-An actuary that enters a war room would bring a whole-of-distribution approach to assessing the fatality risk of war. This makes for a richer analysis, one that can capture unexpected and important nuances in the impact of different factors on this risk. While @cunen2020 brought these tools to the attention of conflict scholars, their study offers little in the way of practical guidance or intuitions for applied researchers. The goal behind this study was to introduce readers to the relevant tools for doing this kind of analysis and how to use them.
+What would happen if an actuwary walked into a war room? They would bring a whole-of-distribution approach to assessing the fatality risk of war that is particularly sensitive to the chance of extreme events.
 
-The particular actuarial tool suggested by @cunen2020, the inverse Burr, has substantial build-in flexibility. This gives it the ability to fit a wide range of distributions with power-law tails of varying thickness and with either a zero or interior mode. It also can handle covariates in a regression framework, where the researcher is free to allow any of the inverse Burr's three parameters to be conditioned by these factors.
+Such an approach has clear utility for conflict scholars, which is why @cunen2020 recently turned to the actuarial toolkit in their study of war deaths. In the process, they introduced an obscure but powerful statistical model to political science known as the inverse Burr model. Unfortunately, @cunen2020 provided little practical guidance on how to use the inverse Burr and they failed to provide a convenient software package to make the method accessible to the wider community of conflict scholars.
 
-An R package called `{actuwar}` was introduced that offers an intuitive user interface for political scientists interested in using this method to analyze correlates of war deaths. It adopts many coding conventions common to other models in the R programming language.
+This paper fills this gap by, first, introducing an R package called `{actuwar}` that offers an intuitive user interface for political scientists interested in using this method to model the chance of extreme wars. The package adopts coding conventions common to other models in the R programming language to maximize its accessibility.
 
-In addition, ways of specifying inverse Burr models, details about model estimation and inference, and presentation of results were addressed. A word of warning was provided as well. One potential trade-off with the inverse Burr's flexibility is its sensitivity to the scaling of the outcome variable. Researchers should do their best to ensure that any data transformations they apply are justified, and they may want to show results both with and without their preferred transformations to assure readers that their results are insensitive to them.
+Second, this paper offers practical advice for specifying inverse Burr models, details about model estimation and inference, and presentation of results. A word of warning was provided as well about the inverse Burr's sensitivity to the scaling of variables. Researchers should do their best to ensure that any data transformations they apply are justified, and they may want to show results both with and without their preferred transformations to assure readers that their results are insensitive to their choices.
 
-Having a tool like the inverse Burr for studying sizes of wars is a timely and important issue. Since @pinker2011 published *Better Angels of Our Nature*, a number of scholars have taken up the gauntlet of assessing the so-called decline of war thesis. The literature that has emerged around this issue yields mixed results and has engendered disagreement over modelling and measurement strategies [@braumoeller2019; @cederman2003; @cedermanEtAl2011; @cirillo2016statistical; @clauset2017enduring; @clauset2018trends; @cunen2020 @spagat2020decline; @spagat2018fundamental; @weisiger2013logics]. While the method proposed by @cunen2020 has met with some skepticism [@braumoeller2021trends], there is great potential for the inverse Burr to play a more prominent role in this literature and the overall debate surrounding the decline of war. In particular, its ability to accommodate covariates offers the possibility of testing nuanced hypotheses about various factors at the systemic level of analysis as they relate to war's escalatory potential.
+Access to a tool like the inverse Burr for studying war size is timely and important. Since @pinker2011 published *Better Angels of Our Nature*, a number of scholars have taken up the gauntlet of assessing the so-called decline of war thesis. The literature that has emerged around this issue yields mixed results and has engendered disagreement over modelling and measurement strategies [@braumoeller2019; @cederman2003; @cedermanEtAl2011; @cirillo2016statistical; @clauset2017enduring; @clauset2018trends; @cunen2020 @spagat2020decline; @spagat2018fundamental; @weisiger2013logics]. While the method proposed by @cunen2020 has met with some skepticism [@braumoeller2021trends], there is great potential for the inverse Burr to play a more prominent role in this literature and the overall debate surrounding the decline of war. In particular, its ability to accommodate covariates offers the possibility of testing nuanced hypotheses about various factors as they relate to war's escalatory potential.
 
-The results shown in this study are primarily for demonstration, but they also show how the inverse Burr supports a richer analysis. Using the CoW conflict series, the parameters of an inverse Burr model of war fatalities were allowed to vary as a function of a post-1950 indicator, average belligerent polity scores, and the log of the pooled belligerent populations. The results show, first, that the inclusion of covariates improves the inverse Burr's performance, particularly in explaining extreme wars like World War II. Second, they show that the expected distribution of war sizes is sensitive to factors like democracy and population. With respect to democracy in particular, an increase in average polity scores predicts an increase in the modal war size and a decline in the likelihood of small wars. At the same time, it predicts a decline in the chances of huge wars. This unique finding might help explain why the decline of war thesis as been so hard to peg down. Polity scores have generally increased over time, and they seem to predict contradictory trends in the chances of small versus large wars.
+It is the hope that conflict scholars will be able to use this method and the associated R package to better explain variation in war size and test a wide range of old and new theories about war escalation. This tool will prove especially useful as new datasets with much more granular detail on battle deaths become available, such as the Militarized Interstate Events Dataset, 1816-2014 [@gibler2024militarized] that provides battle level detail on fatalities for all wars (and conflicts short of war) over a nearly two century period.
 
-It is the hope that conflict scholars will be able to use this method and the associated R package to better explain variation in war size and test a wide range of old and new theories about war escalation. But this method need not be restricted to this narrow sub-field. Political scientists studying a range of issues may find the inverse Burr a helpful tool for solving similar data challenges where easy solutions did not exist.
+# Supplementary Materials
+
+Code to replicate the analysis in this paper can be found on the corresponding author's GitHub: <https://github.com/milesdwilliams15/actuary-in-a-war-room>.
 
 # References
