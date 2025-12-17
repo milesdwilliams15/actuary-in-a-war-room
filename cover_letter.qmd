@@ -1,0 +1,20 @@
+---
+title: "Cover Letter"
+format: pdf
+editor: visual
+bibliography: "ref.bib"
+---
+
+To the editorial board at *Conflict Management and Peace Science*,
+
+I am submitting the present manuscript for consideration as a regular article (though as I note below, it does not neatly fit into this category). I can confirm that it is an original submission and not currently under consideration at another outlet.
+
+This manuscript addresses a methodological challenge unique to conflict research—specifically the development of statistical models of war deaths which pose a challenge due to the thick-tailed distribution of fatalities. Recent work by @cunen2020 shows that the inverse Burr model, an approach from actuarial science, offers features well suited to studying war size while avoiding limitations of existing methods. The inverse Burr has two key advantages: it models the full distribution of war deaths and supports regression analysis. However, its adoption has been limited by the lack of accessible software and conflict-research-specific guidance. This paper addresses these barriers by introducing a new R package, `{actuwar}`, and providing practical guidance for modeling war deaths using the inverse Burr.
+
+As the world enters a period of renewed conflict across the world, both conflict scholars and policy-makers need access to a tool like `{actuwar}` to analyze the risk that a particular conflict could snowball into an extremely deadly conflagration. While this manuscript does not neatly feat in one of the four categories of submissions CMPS considers (regular article, data feature, research note, and data note), I believe it will be of interest to other conflict scholars, and I think CMPS would be a great outlet for reaching this audience. Further, while pieces centered on a software package are not common, CMPS recently published an article about the `{peacesciencer}` package [@peacesciencer-package], no doubt because of its clear utility to conflict scholars. For these reasons, despite the unconventional nature of this submission, I hope you will give it consideration.
+
+Sincerely,
+
+Miles D. Williams, Denison University (williamsmd\@denison.edu)
+
+## References

@@ -367,6 +367,8 @@ With covariates.
 library(furrr)
 cores <- availableCores() - 1
 plan(multisession, workers = cores)
+wars$post1950 <- ifelse(wars$post1950 == "post-1950", 1, 0)
+wars$post1950 <- ifelse(wars$post1950 == 1, "post-1950", "pre-1950")
 preds <- ~ post1950 + dem + pop
 cov_fit <- ibm(
   fat,
@@ -375,8 +377,7 @@ cov_fit <- ibm(
   theta = preds,
   data = wars
 )
-cov_fit$summary |>
-  select(param, term, estimate, statistic)
+cov_fit$summary
 ```
 
 
@@ -398,7 +399,7 @@ bind_rows(
     labeller = label_parsed
   ) +
   scale_y_discrete(
-    labels = c("Population (log)", "Polity (Avg.)", "Post-1950",
+    labels = c("Population (log)", "Polity (Avg.)", "Pre-1950",
                "Constant")
   ) +
   labs(
@@ -546,7 +547,7 @@ bind_rows(
     labeller = label_parsed
   ) +
   scale_y_discrete(
-    labels = c("Population (log)", "Polity (Avg.)", "Post-1950",
+    labels = c("Population (log)", "Polity (Avg.)", "Pre-1950",
                "Constant")
   ) +
   labs(
